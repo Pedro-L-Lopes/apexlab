@@ -5,6 +5,7 @@ import { redirect } from "next/navigation";
 import { ArrowLeft, Box } from "lucide-react";
 import { verifyAdminSession } from "@/lib/auth/admin";
 import { getPublicSiteSettings } from "@/lib/queries/public";
+import { buildStoreThemeVars } from "@/lib/utils";
 import { LoginForm } from "@/app/login/login-form";
 import { Skeleton } from "@/components/ui/skeleton";
 
@@ -59,9 +60,15 @@ export default async function LoginPage({
   searchParams: Promise<Record<string, string | string[] | undefined>>;
 }) {
   const settings = await getPublicSiteSettings();
+  const themeStyle = buildStoreThemeVars(
+    settings.primary_color
+  ) as React.CSSProperties;
 
   return (
-    <main className="relative flex min-h-screen items-center justify-center bg-bg px-4 py-12 text-ink overflow-x-clip">
+    <main
+      style={themeStyle}
+      className="relative flex min-h-screen items-center justify-center bg-bg px-4 py-12 text-ink overflow-x-clip"
+    >
       <div
         aria-hidden="true"
         className="pointer-events-none absolute -right-24 -top-24 h-96 w-96 rounded-full bg-accent/12 blur-3xl"
@@ -77,7 +84,7 @@ export default async function LoginPage({
             Voltar ao catálogo
           </Link>
 
-          <span className="inline-flex items-center gap-1.5 text-xs font-semibold text-accent">
+          <span className="inline-flex items-center gap-1.5 text-xs font-semibold text-accent-ink">
             <Box className="h-3.5 w-3.5" />
             {settings.name}
           </span>
@@ -85,7 +92,7 @@ export default async function LoginPage({
 
         <section className="rounded-[28px] border border-line/90 bg-surface/95 p-7 shadow-card sm:p-8">
           <div className="mb-6 space-y-2">
-            <p className="text-[11px] font-bold uppercase tracking-[0.14em] text-accent">
+            <p className="text-[11px] font-bold uppercase tracking-[0.14em] text-accent-ink">
               Área restrita
             </p>
             <h1 className="font-display text-3xl font-extrabold tracking-[-0.03em] text-ink">

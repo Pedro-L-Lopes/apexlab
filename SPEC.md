@@ -201,14 +201,21 @@ A linha única de `site_settings` (com valores padrão, `whatsapp` e `instagram`
 
 ### 7.1 Home — `/`
 - Hero curto: título, subtítulo (de `site_settings`), botão para o catálogo e botão de WhatsApp.
-- Categorias em destaque (`show_on_home`) em cards grandes com animação de entrada.
+- Categorias em destaque (`show_on_home`) em **cartões compactos** (altura ~96px: ícone, nome e contagem). No celular, carrossel horizontal com *scroll snap*, mostrando cerca de 2,3 cartões por vez para indicar que dá para rolar; no desktop, grade de até 6 cartões. Exibir apenas categorias com pelo menos 1 produto ativo. Nunca cartões altos que ocupem a tela inteira.
+- Os números do hero são reais e coerentes com o rótulo: produtos ativos e categorias com produtos ativos.
 - Produtos em destaque (`featured`) em grade.
 - Bloco "Como pedir" em 3 passos (escolha, chame no WhatsApp, receba).
 - Rodapé com logo, Instagram e WhatsApp.
 
 ### 7.2 Catálogo — `/catalogo`
 - Cabeçalho no padrão da seção 4 (eyebrow, título com ponto em destaque, subtítulo com contagem).
-- Abas em pílula por categoria, com contagem e indicador deslizante (subcategorias aparecem como chips ao selecionar a categoria). Tags como chips. Busca por nome com contador de resultados. Ordenação (destaque, menor preço, maior preço, mais recentes).
+- **Barra de filtros compacta** (mesmo desenho no celular e no desktop):
+  - Linha 1: busca + botão "Filtros" com contador de filtros ativos.
+  - Linha 2: categorias em **uma única linha rolável na horizontal** (scroll snap, sem quebra de linha, esmaecimento nas bordas, categoria ativa centralizada), com contagem e indicador deslizante. Item "Todos" fixo no início. Só aparecem categorias com produtos ativos.
+  - Subcategorias: linha secundária menor, só quando a categoria selecionada tem filhas.
+  - **Tags não ficam soltas na página.** Ficam no painel "Filtros" (bottom sheet no celular, popover no desktop), com campo de busca de tag e as mais usadas primeiro. A ordenação (destaque, menor preço, maior preço, mais recentes) fica no mesmo painel ou em um select compacto ao lado da contagem de resultados.
+  - Filtros ativos aparecem como chips removíveis abaixo da barra, com "Limpar tudo" e a contagem de resultados ("4 peças").
+  - Sem containers com fundo ao redor das abas: elas ficam direto sobre o fundo da página.
 - Estado dos filtros na URL (`searchParams`) para link compartilhável.
 - Grade responsiva: 2 colunas no celular, 3 no tablet, 4 no desktop. No desktop, seletor de densidade (3, 4 ou 5 colunas).
 - Produtos com variantes ativas usam o efeito de cards empilhados e o selo "N OPÇÕES".
@@ -227,6 +234,12 @@ A linha única de `site_settings` (com valores padrão, `whatsapp` e `instagram`
 
 ### 7.4 Outros
 - Página 404 bonita, `sitemap.xml`, `robots.txt`, favicon da marca.
+
+### 7.5 Navegação (header)
+- Menu em pílula (Início, Catálogo) com **indicador deslizante** (`layoutId`) que anima entre os itens ao trocar de rota, com mola curta (250–350ms) e `prefers-reduced-motion` respeitado.
+- Clicar em "Início" (ou no logo) com a rota já em `/` rola suavemente até o topo, de qualquer ponto da página (`scrollTo({ top: 0, behavior: 'smooth' })`, sem animação se reduced-motion), sem recarregar. Em outra rota, navega para `/` já no topo.
+- Ao trocar de rota, a página nova abre no topo.
+- Texto pequeno na cor de destaque (eyebrow, links) usa `--accent-strong` ou outra variação que passe contraste AA; a cor de destaque pura fica para preenchimentos (botões, selos, indicadores).
 
 ---
 
@@ -257,7 +270,7 @@ Bento grid no estilo das referências: 1 cartão sólido na cor de destaque com 
 CRUD com subcategorias, reordenação por arrastar, alternar `active` e `show_on_home`.
 
 ### 8.6 Importar — `/admin/importar`
-Ver seção 9.
+Duas abas: **Por links** (seções 9.1 a 9.3) e **Planilha manual** (seção 9.4).
 
 ### 8.7 Configurações — `/admin/configuracoes`
 Editar `site_settings`: nome, descrição, logo, banner, cor de destaque (com preview), WhatsApp, Instagram e modelo da mensagem do WhatsApp.
@@ -290,6 +303,17 @@ Botão em `/admin/produtos`. O admin cola a URL do modelo. Um Route Handler no s
 - A validação SSRF vale também para cada redirecionamento (`redirect: 'manual'`, validando cada salto), para DNS resolvido antes do `fetch` e para as URLs de imagem (`og:image`) baixadas para o `sharp`.
 - Conteúdo de terceiros é tratado como dado, nunca como instrução ou HTML confiável (sanitizar descrição).
 - Lembrete na interface: só publicar o que for criação própria ou tiver licença que permita uso comercial.
+
+### 9.4 Cadastro manual em lote (aba "Planilha manual")
+Para cadastrar vários produtos de uma vez, sem links.
+- **Grade editável estilo planilha**, uma linha por produto. Colunas: imagem de capa (miniatura, upload por clique ou arrastar), nome, categoria (select), preço, tags (separadas por vírgula), cores, link do STL (interno) e status.
+- **Arrastar várias fotos de uma vez** cria uma linha por foto, com o nome sugerido a partir do nome do arquivo (sem extensão, hífens e underscores viram espaços, primeira letra maiúscula). Fotos extras do mesmo produto são adicionadas depois, na edição.
+- **Colar da planilha:** dados copiados do Excel ou Google Sheets (TSV) criam linhas na ordem das colunas exibidas. Cabeçalho opcional é detectado e ignorado.
+- Ações rápidas: adicionar, duplicar e remover linha; "preencher coluna" para as linhas selecionadas (ex.: mesma categoria ou mesmo preço); navegação com Tab e Enter como em planilha.
+- Validação por linha antes de salvar (nome obrigatório, preço numérico, slug único gerado automaticamente, com sufixo se já existir). Linhas inválidas ficam destacadas e não impedem salvar as demais.
+- "Salvar tudo": cria como `draft` (padrão) ou `active`, conforme escolha no topo. Imagens processadas como na seção 8.4 (WebP, 1600px, máx. 5 MB). STL gravado em `product_private.stl_url`. Limite de 50 linhas por envio. No fim, resumo (criados e com erro) e link para a lista de produtos filtrada pelos recém-criados.
+- O conteúdo da grade sobrevive a recarregar a página (armazenamento local do navegador).
+- Mesmas regras de segurança do restante do admin: Server Action com sessão + `is_admin()`, validação Zod e invalidação do cache público após salvar.
 
 ---
 

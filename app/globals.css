@@ -16,6 +16,7 @@
   --muted: #6B7488;
   --line: #E3E8F2;
   --accent-strong: color-mix(in srgb, var(--accent) 82%, black);
+  --accent-ink: #1941D1;
   --accent-soft: color-mix(in srgb, var(--accent) 10%, white);
   --radius-input: 14px;
   --radius-card: 24px;
@@ -32,6 +33,7 @@
   --color-line: var(--line);
   --color-accent: var(--accent);
   --color-accent-strong: var(--accent-strong);
+  --color-accent-ink: var(--accent-ink);
   --color-accent-soft: var(--accent-soft);
   --color-accent-foreground: var(--accent-foreground);
 

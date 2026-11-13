@@ -648,7 +648,7 @@ export function StyleguideClient() {
                     <Upload className="h-3.5 w-3.5 text-accent" />
                     modelo-capa.webp
                   </span>
-                  <span className="font-bold text-accent tabular-nums">64%</span>
+                  <span className="font-bold text-accent-ink tabular-nums">64%</span>
                 </div>
                 <ProgressBar value={64} />
               </div>
@@ -834,7 +834,7 @@ export function StyleguideClient() {
             </div>
 
             <div className="space-y-3 rounded-[24px] border border-line bg-surface p-6 shadow-card">
-              <p className="text-xs font-bold uppercase tracking-[0.12em] text-accent">
+              <p className="text-xs font-bold uppercase tracking-[0.12em] text-accent-ink">
                 — Eyebrow 12px · tracking 0.12em
               </p>
               <p className="font-display text-4xl font-extrabold leading-[1.03] tracking-[-0.03em] text-ink">

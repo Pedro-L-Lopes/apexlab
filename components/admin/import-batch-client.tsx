@@ -722,7 +722,7 @@ export function ImportBatchClient({
             </p>
           </div>
 
-          <span className="rounded-full bg-accent-soft px-3 py-1 text-xs font-semibold text-accent">
+          <span className="rounded-full bg-accent-soft px-3 py-1 text-xs font-semibold text-accent-ink">
             {parsedInputLines.length}{" "}
             {parsedInputLines.length === 1
               ? "linha detectada"
@@ -961,7 +961,7 @@ export function ImportBatchClient({
                               onClick={() =>
                                 fileInputRefs.current[job.id]?.click()
                               }
-                              className="text-[11px] font-semibold text-accent hover:underline cursor-pointer disabled:opacity-50"
+                              className="text-[11px] font-semibold text-accent-ink hover:underline cursor-pointer disabled:opacity-50"
                             >
                               {isUploading ? "Enviando..." : "Enviar foto"}
                             </button>
@@ -993,7 +993,7 @@ export function ImportBatchClient({
                             href={job.source_url}
                             target="_blank"
                             rel="noopener noreferrer"
-                            className="inline-flex max-w-[240px] items-center gap-1 truncate hover:text-accent"
+                            className="inline-flex max-w-[240px] items-center gap-1 truncate hover:text-accent-ink"
                             title={job.source_url}
                           >
                             <Link2 className="h-3 w-3 shrink-0" />
@@ -1136,7 +1136,7 @@ export function ImportBatchClient({
                         {job.linked_product && (
                           <Link
                             href={`/admin/produtos/${job.linked_product.id}`}
-                            className="inline-flex items-center gap-1 text-[11px] font-semibold text-accent hover:underline"
+                            className="inline-flex items-center gap-1 text-[11px] font-semibold text-accent-ink hover:underline"
                           >
                             <CheckCircle2 className="h-3 w-3" />
                             Abrir rascunho

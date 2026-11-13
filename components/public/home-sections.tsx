@@ -73,7 +73,7 @@ export function HomeContent({
 
         <div className="relative z-10 grid items-center gap-8 lg:grid-cols-[1.25fr_0.75fr]">
           <div className="space-y-6">
-            <p className="flex items-center gap-2.5 text-xs font-bold uppercase tracking-[0.12em] text-accent">
+            <p className="flex items-center gap-2.5 text-xs font-bold uppercase tracking-[0.12em] text-accent-ink">
               <span
                 className="inline-block h-[2px] w-4 rounded-full bg-accent"
                 aria-hidden="true"
@@ -145,7 +145,7 @@ export function HomeContent({
         <section aria-labelledby="home-categories-heading" className="space-y-6">
           <div className="flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between">
             <div>
-              <p className="flex items-center gap-2 text-xs font-bold uppercase tracking-[0.12em] text-accent">
+              <p className="flex items-center gap-2 text-xs font-bold uppercase tracking-[0.12em] text-accent-ink">
                 <span
                   className="inline-block h-[2px] w-4 rounded-full bg-accent"
                   aria-hidden="true"
@@ -162,7 +162,7 @@ export function HomeContent({
 
             <Link
               href="/catalogo"
-              className="inline-flex items-center gap-1.5 text-sm font-semibold text-accent hover:underline"
+              className="inline-flex items-center gap-1.5 text-sm font-semibold text-accent-ink hover:underline"
             >
               Ver catálogo completo
               <ArrowRight className="h-4 w-4" aria-hidden="true" />
@@ -219,7 +219,7 @@ export function HomeContent({
       <section aria-labelledby="home-featured-heading" className="space-y-6">
         <div className="flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between">
           <div>
-            <p className="flex items-center gap-2 text-xs font-bold uppercase tracking-[0.12em] text-accent">
+            <p className="flex items-center gap-2 text-xs font-bold uppercase tracking-[0.12em] text-accent-ink">
               <span
                 className="inline-block h-[2px] w-4 rounded-full bg-accent"
                 aria-hidden="true"
@@ -281,7 +281,7 @@ export function HomeContent({
       {/* 4. Bloco "Como pedir" em 3 passos */}
       <section aria-labelledby="home-steps-heading" className="space-y-6">
         <div>
-          <p className="flex items-center gap-2 text-xs font-bold uppercase tracking-[0.12em] text-accent">
+          <p className="flex items-center gap-2 text-xs font-bold uppercase tracking-[0.12em] text-accent-ink">
             <span
               className="inline-block h-[2px] w-4 rounded-full bg-accent"
               aria-hidden="true"

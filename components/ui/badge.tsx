@@ -12,7 +12,7 @@ const badgeVariants = cva(
         hidden: "bg-[#E9EEF6] text-[#475467]",
         options:
           "bg-surface/92 text-ink border border-line/80 backdrop-blur-xs shadow-xs",
-        accent: "bg-accent-soft text-accent",
+        accent: "bg-accent-soft text-accent-ink",
         solid: "bg-accent text-accent-foreground",
       },
     },

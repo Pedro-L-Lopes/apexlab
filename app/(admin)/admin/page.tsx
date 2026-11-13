@@ -120,7 +120,7 @@ export default async function AdminDashboardPage() {
             className="my-5 font-display text-5xl font-extrabold tracking-[-0.03em] text-ink tabular-nums"
           />
 
-          <p className="inline-flex items-center gap-1.5 text-xs font-semibold text-accent group-hover:underline">
+          <p className="inline-flex items-center gap-1.5 text-xs font-semibold text-accent-ink group-hover:underline">
             Ver rascunhos
             <ArrowRight className="h-3.5 w-3.5" />
           </p>
@@ -174,7 +174,7 @@ export default async function AdminDashboardPage() {
             className="my-5 font-display text-5xl font-extrabold tracking-[-0.03em] text-ink tabular-nums"
           />
 
-          <p className="inline-flex items-center gap-1.5 text-xs font-semibold text-accent group-hover:underline">
+          <p className="inline-flex items-center gap-1.5 text-xs font-semibold text-accent-ink group-hover:underline">
             Organizar categorias
             <ArrowRight className="h-3.5 w-3.5" />
           </p>
@@ -197,7 +197,7 @@ export default async function AdminDashboardPage() {
 
             <Link
               href="/admin/produtos"
-              className="text-xs font-semibold text-accent hover:underline"
+              className="text-xs font-semibold text-accent-ink hover:underline"
             >
               Ver todos
             </Link>

@@ -428,7 +428,7 @@ export function SettingsFormClient({
                         onClick={() =>
                           setTemplate((prev) => `${prev} ${token}`.trim())
                         }
-                        className="rounded-full border border-line bg-bg px-2.5 py-0.5 text-[11px] font-mono font-semibold text-accent hover:bg-accent-soft cursor-pointer"
+                        className="rounded-full border border-line bg-bg px-2.5 py-0.5 text-[11px] font-mono font-semibold text-accent-ink hover:bg-accent-soft cursor-pointer"
                       >
                         {token}
                       </button>
@@ -450,7 +450,7 @@ export function SettingsFormClient({
         <aside className="space-y-5 lg:col-span-4">
           <div className="sticky top-24 space-y-5 rounded-[24px] border border-line bg-surface p-6 shadow-card">
             <div>
-              <p className="text-[11px] font-bold uppercase tracking-[0.14em] text-accent">
+              <p className="text-[11px] font-bold uppercase tracking-[0.14em] text-accent-ink">
                 Preview ao vivo
               </p>
               <h2 className="mt-1 font-display text-lg font-bold text-ink">

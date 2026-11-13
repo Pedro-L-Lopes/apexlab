@@ -2,7 +2,7 @@ import { Suspense } from "react";
 import type { Metadata } from "next";
 import { requireAdminPage } from "@/lib/auth/admin";
 import { getAdminShellData } from "@/lib/queries/admin";
-import { getContrastTextColor } from "@/lib/utils";
+import { buildStoreThemeVars } from "@/lib/utils";
 import { AdminShell } from "@/components/admin/admin-shell";
 import { Skeleton } from "@/components/ui/skeleton";
 
@@ -46,16 +46,9 @@ async function AdminAuthorizedLayout({
   const { supabase, user } = await requireAdminPage();
   const { settings, counts } = await getAdminShellData(supabase);
 
-  const accent = settings.primary_color || "#1F4FFF";
-  const accentForeground = getContrastTextColor(accent);
-
-  const themeStyle = {
-    "--accent": accent,
-    "--accent-foreground": accentForeground,
-    "--accent-strong": `color-mix(in srgb, ${accent} 82%, black)`,
-    "--accent-soft": `color-mix(in srgb, ${accent} 10%, white)`,
-    "--bg-glow": `radial-gradient(circle at top right, color-mix(in srgb, ${accent} 10%, transparent), transparent 60%)`,
-  } as React.CSSProperties;
+  const themeStyle = buildStoreThemeVars(
+    settings.primary_color
+  ) as React.CSSProperties;
 
   return (
     <div style={themeStyle}>

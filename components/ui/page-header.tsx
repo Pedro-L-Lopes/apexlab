@@ -24,7 +24,7 @@ export function PageHeader({
       )}
     >
       <div className="min-w-0">
-        <p className="flex items-center gap-2.5 text-xs font-bold uppercase tracking-[0.12em] text-accent">
+        <p className="flex items-center gap-2.5 text-xs font-bold uppercase tracking-[0.12em] text-accent-ink">
           <span
             className="inline-block h-[2px] w-4 rounded-full bg-accent"
             aria-hidden="true"

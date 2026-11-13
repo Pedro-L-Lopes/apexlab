@@ -45,7 +45,7 @@ export const SearchInput = React.forwardRef<HTMLInputElement, SearchInputProps>(
           {...props}
         />
         {resultLabel ? (
-          <span className="pointer-events-none absolute right-2 hidden sm:inline-flex items-center rounded-full bg-accent-soft px-2.5 py-1 text-[11px] font-semibold text-accent">
+          <span className="pointer-events-none absolute right-2 hidden sm:inline-flex items-center rounded-full bg-accent-soft px-2.5 py-1 text-[11px] font-semibold text-accent-ink">
             {resultLabel}
           </span>
         ) : null}

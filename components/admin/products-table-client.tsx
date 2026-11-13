@@ -517,14 +517,14 @@ export function ProductsTableClient({
                       <div className="min-w-0">
                         <Link
                           href={`/admin/produtos/${product.id}`}
-                          className="block truncate font-semibold text-ink hover:text-accent"
+                          className="block truncate font-semibold text-ink hover:text-accent-ink"
                         >
                           {product.name}
                         </Link>
                         <div className="flex items-center gap-2 text-xs text-muted">
                           <span className="truncate">/{product.slug}</span>
                           {product.variants_count > 0 && (
-                            <span className="shrink-0 text-[11px] font-medium text-accent">
+                            <span className="shrink-0 text-[11px] font-medium text-accent-ink">
                               · {product.variants_count} opções
                             </span>
                           )}

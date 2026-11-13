@@ -3,6 +3,7 @@ import Image from "next/image";
 import { Box, MessageCircle } from "lucide-react";
 import type { PublicSiteSettings } from "@/lib/queries/public";
 import { buildWhatsAppGeneralUrl } from "@/lib/whatsapp";
+import { PublicHomeBrandLink } from "@/components/public/public-header-nav";
 
 function InstagramIcon({ className }: { className?: string }) {
   return (
@@ -47,10 +48,7 @@ export function PublicFooter({ settings }: PublicFooterProps) {
     <footer className="mt-20 border-t border-line/90 bg-surface/80">
       <div className="mx-auto flex max-w-[1320px] flex-col gap-8 px-4 py-10 sm:px-8 md:flex-row md:items-center md:justify-between">
         <div className="space-y-2.5 max-w-md">
-          <Link
-            href="/"
-            className="inline-flex items-center gap-2.5 rounded-full focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/40"
-          >
+          <PublicHomeBrandLink className="inline-flex items-center gap-2.5 rounded-full focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/40">
             {settings.logo_url ? (
               <span className="relative flex h-8 w-8 overflow-hidden rounded-xl border border-line bg-surface">
                 <Image
@@ -69,7 +67,7 @@ export function PublicFooter({ settings }: PublicFooterProps) {
             <span className="font-display text-base font-extrabold tracking-[-0.02em] text-ink">
               {settings.name}
             </span>
-          </Link>
+          </PublicHomeBrandLink>
           <p className="text-[13px] leading-relaxed text-muted">
             {settings.description?.trim() ||
               "Peças impressas em 3D sob demanda com acabamento preciso e atendimento direto."}

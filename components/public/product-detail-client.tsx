@@ -174,7 +174,7 @@ export function ProductDetailClient({
       >
         <Link
           href="/catalogo"
-          className="inline-flex items-center gap-1 rounded-full py-1 pr-2 text-ink transition hover:text-accent"
+          className="inline-flex items-center gap-1 rounded-full py-1 pr-2 text-ink transition hover:text-accent-ink"
         >
           <ArrowLeft className="h-3.5 w-3.5" />
           Catálogo
@@ -421,7 +421,7 @@ export function ProductDetailClient({
             {category && (
               <Link
                 href={`/catalogo?categoria=${encodeURIComponent(category.slug)}`}
-                className="text-sm font-medium text-accent transition hover:underline"
+                className="text-sm font-medium text-accent-ink transition hover:underline"
               >
                 Ver categoria
               </Link>
