@@ -30,20 +30,35 @@ export function HomeContent({
   categories,
   products,
 }: HomeContentProps) {
-  const homeCategories = categories.filter((cat) => cat.show_on_home);
+  const categoryById = new Map(categories.map((cat) => [cat.id, cat]));
+  const countByCategory = new Map<string, number>();
+
+  for (const product of products) {
+    if (!product.category_id) continue;
+    countByCategory.set(
+      product.category_id,
+      (countByCategory.get(product.category_id) ?? 0) + 1
+    );
+    const cat = categoryById.get(product.category_id);
+    if (cat?.parent_id) {
+      countByCategory.set(
+        cat.parent_id,
+        (countByCategory.get(cat.parent_id) ?? 0) + 1
+      );
+    }
+  }
+
+  const categoriesWithActiveProducts = categories.filter(
+    (cat) => (countByCategory.get(cat.id) ?? 0) > 0
+  );
+  const homeCategories = categoriesWithActiveProducts
+    .filter((cat) => cat.show_on_home)
+    .slice(0, 6);
+
   const featuredProducts = products.filter((p) => p.featured);
   const showcasedProducts =
     featuredProducts.length > 0 ? featuredProducts : products.slice(0, 6);
 
-  const countByCategory = new Map<string, number>();
-  for (const product of products) {
-    if (product.category_id) {
-      countByCategory.set(
-        product.category_id,
-        (countByCategory.get(product.category_id) ?? 0) + 1
-      );
-    }
-  }
   const categoryNameById = new Map<string, string>(
     categories.map((cat) => [cat.id, cat.name])
   );
@@ -123,17 +138,19 @@ export function HomeContent({
                 {products.length}
               </p>
               <p className="mt-1 text-xs font-medium opacity-85">
-                modelos prontos para impressão
+                {products.length === 1 ? "produto ativo" : "produtos ativos"}
               </p>
             </div>
 
             <div className="rounded-[24px] bg-ink-deep p-5 text-white shadow-card">
               <Layers className="h-5 w-5 text-blue-300" aria-hidden="true" />
               <p className="mt-5 font-display text-3xl font-extrabold tracking-[-0.03em] tabular-nums">
-                {categories.length}
+                {categoriesWithActiveProducts.length}
               </p>
               <p className="mt-1 text-xs font-medium text-white/75">
-                coleções curadas em destaque
+                {categoriesWithActiveProducts.length === 1
+                  ? "categoria com produtos ativos"
+                  : "categorias com produtos ativos"}
               </p>
             </div>
           </div>
@@ -174,39 +191,32 @@ export function HomeContent({
             initial="hidden"
             whileInView="visible"
             viewport={{ once: true, amount: 0.15 }}
-            className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4"
+            className="-mx-4 flex gap-3 overflow-x-auto snap-x snap-mandatory scroll-pl-4 px-4 pb-1 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden sm:mx-0 sm:grid sm:grid-cols-3 sm:gap-4 sm:overflow-visible sm:px-0 sm:pb-0 lg:grid-cols-6"
           >
-            {homeCategories.map((cat, idx) => {
+            {homeCategories.map((cat) => {
               const count = countByCategory.get(cat.id) ?? 0;
               return (
-                <motion.div key={cat.id} variants={fadeInUp}>
+                <motion.div
+                  key={cat.id}
+                  variants={fadeInUp}
+                  className="w-[41%] min-w-[144px] shrink-0 snap-start sm:w-auto sm:min-w-0 sm:shrink"
+                >
                   <Link
                     href={`/catalogo?categoria=${encodeURIComponent(cat.slug)}`}
-                    className="group flex h-full flex-col justify-between rounded-[24px] border border-line/90 bg-surface p-6 shadow-card transition-all duration-300 ease-[cubic-bezier(0.22,1,0.36,1)] hover:-translate-y-1 hover:border-accent/35 hover:shadow-[0_14px_34px_rgba(31,79,255,0.10)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/40"
+                    className="group flex h-24 flex-col justify-between rounded-[20px] border border-line/90 bg-surface px-3.5 py-3 shadow-card transition-all duration-300 ease-[cubic-bezier(0.22,1,0.36,1)] hover:-translate-y-0.5 hover:border-accent/40 hover:shadow-[0_12px_28px_rgba(31,79,255,0.08)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/40 sm:px-4"
                   >
-                    <div className="flex items-center justify-between">
-                      <span className="flex h-11 w-11 items-center justify-center rounded-2xl bg-accent-soft text-accent transition-colors group-hover:bg-accent group-hover:text-accent-foreground">
-                        <Box className="h-5 w-5" aria-hidden="true" />
+                    <div className="flex items-center justify-between gap-2">
+                      <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg bg-accent-soft text-accent-ink transition-colors group-hover:bg-accent group-hover:text-accent-foreground">
+                        <Box className="h-3.5 w-3.5" aria-hidden="true" />
                       </span>
-                      <span className="rounded-full bg-[#F1F5FD] px-3 py-1 text-[11px] font-bold uppercase tracking-[0.06em] text-muted tabular-nums">
+                      <span className="rounded-full bg-[#F1F5FD] px-2.5 py-0.5 text-[11px] font-bold uppercase tracking-[0.05em] text-muted tabular-nums whitespace-nowrap">
                         {count} {count === 1 ? "peça" : "peças"}
                       </span>
                     </div>
 
-                    <div className="mt-6 flex items-end justify-between gap-2">
-                      <div>
-                        <span className="text-[11px] font-bold uppercase tracking-[0.1em] text-muted">
-                          0{idx + 1}
-                        </span>
-                        <h3 className="mt-1 font-display text-xl font-bold tracking-[-0.02em] text-ink">
-                          {cat.name}
-                        </h3>
-                      </div>
-                      <ArrowRight
-                        className="h-4 w-4 shrink-0 text-muted transition-transform group-hover:translate-x-1 group-hover:text-accent"
-                        aria-hidden="true"
-                      />
-                    </div>
+                    <h3 className="line-clamp-2 font-display text-[13.5px] font-bold leading-[1.18] tracking-[-0.02em] text-ink sm:text-sm">
+                      {cat.name}
+                    </h3>
                   </Link>
                 </motion.div>
               );
@@ -236,7 +246,7 @@ export function HomeContent({
 
           <Link
             href="/catalogo"
-            className="inline-flex items-center gap-1.5 text-sm font-semibold text-accent hover:underline"
+            className="inline-flex items-center gap-1.5 text-sm font-semibold text-accent-ink hover:underline"
           >
             Ver todas ({products.length})
             <ArrowRight className="h-4 w-4" aria-hidden="true" />

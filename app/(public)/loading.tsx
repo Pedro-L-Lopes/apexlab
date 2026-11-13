@@ -21,6 +21,13 @@ export default function PublicHomeLoading() {
         <Skeleton className="aspect-[4/3] w-full rounded-[24px]" />
       </section>
 
+      {/* Categorias compactas skeleton */}
+      <section className="grid grid-cols-2 gap-3 sm:grid-cols-3 sm:gap-4 lg:grid-cols-6">
+        {Array.from({ length: 6 }).map((_, index) => (
+          <Skeleton key={index} className="h-24 rounded-[20px]" />
+        ))}
+      </section>
+
       {/* Destaques / grade de produtos skeleton */}
       <section className="space-y-6">
         <div className="flex items-center justify-between">
