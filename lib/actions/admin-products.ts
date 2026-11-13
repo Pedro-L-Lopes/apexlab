@@ -28,6 +28,7 @@ const variantSchema = z.object({
 
 const saveProductSchema = z.object({
   id: z.string().uuid().optional(),
+  import_job_id: z.string().uuid().optional(),
   name: z.string().trim().min(2, "Informe um nome com ao menos 2 caracteres.").max(160),
   slug: z.string().trim().min(1, "Informe um slug válido.").max(160),
   description: z.string().trim().max(5000).nullable(),
@@ -223,6 +224,19 @@ export async function saveProductAction(
 
   if (privErr) {
     return { ok: false, error: "Erro ao salvar dados internos do produto." };
+  }
+
+  if (input.import_job_id) {
+    await auth.supabase
+      .from("import_jobs")
+      .update({
+        product_id: productId,
+        stl_url: input.private_data.stl_url || null,
+        status: "done",
+        error_message: null,
+      })
+      .eq("id", input.import_job_id);
+    revalidatePath("/admin/importar");
   }
 
   const slugs = [normalizedSlug];

@@ -13,6 +13,7 @@ import {
   Eye,
   EyeOff,
   FolderInput,
+  Link2,
   Plus,
   Square,
   Star,
@@ -60,6 +61,7 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { useToast } from "@/components/ui/toast";
+import { ImportLinkDialog } from "@/components/admin/import-link-dialog";
 
 interface ProductsTableClientProps {
   initialProducts: AdminProductListItem[];
@@ -101,6 +103,7 @@ export function ProductsTableClient({
   const [batchBusy, setBatchBusy] = React.useState(false);
   const [deleteTarget, setDeleteTarget] =
     React.useState<AdminProductListItem | null>(null);
+  const [importDialogOpen, setImportDialogOpen] = React.useState(false);
 
   const statusCounts = React.useMemo(() => {
     let active = 0;
@@ -305,13 +308,24 @@ export function ProductsTableClient({
           filteredProducts.length === 1 ? "item exibido" : "itens exibidos"
         } de ${products.length} no total`}
         actions={
-          <Link
-            href="/admin/produtos/novo"
-            className={buttonVariants({ variant: "primary", size: "md" })}
-          >
-            <Plus className="h-4 w-4" />
-            Novo produto
-          </Link>
+          <div className="flex flex-wrap items-center gap-2">
+            <Button
+              type="button"
+              variant="secondary"
+              size="md"
+              onClick={() => setImportDialogOpen(true)}
+            >
+              <Link2 className="h-4 w-4 text-accent" />
+              Importar por link
+            </Button>
+            <Link
+              href="/admin/produtos/novo"
+              className={buttonVariants({ variant: "primary", size: "md" })}
+            >
+              <Plus className="h-4 w-4" />
+              Novo produto
+            </Link>
+          </div>
         }
       />
 
@@ -665,6 +679,11 @@ export function ProductsTableClient({
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      <ImportLinkDialog
+        open={importDialogOpen}
+        onOpenChange={setImportDialogOpen}
+      />
     </div>
   );
 }

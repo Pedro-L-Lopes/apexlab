@@ -28,6 +28,7 @@ import {
   ExternalLink,
   EyeOff,
   GripVertical,
+  Link2,
   Lock,
   Plus,
   Save,
@@ -60,10 +61,35 @@ import {
 } from "@/components/ui/select";
 import { StackedCard } from "@/components/ui/stacked-card";
 import { useToast } from "@/components/ui/toast";
+import { ImportLinkDialog } from "@/components/admin/import-link-dialog";
+
+export interface AdminProductPrefill {
+  importJobId?: string;
+  name: string;
+  slug: string;
+  description: string | null;
+  category_id: string | null;
+  price: number | null;
+  material: string | null;
+  tags: string[];
+  images: Array<{ url: string; is_cover: boolean }>;
+  private_data: {
+    stl_url: string | null;
+    source_url: string | null;
+    license: string | null;
+  };
+  warning?: string | null;
+  duplicateProduct?: {
+    id: string;
+    name: string;
+    slug: string;
+  } | null;
+}
 
 interface ProductFormClientProps {
   initialProduct: AdminProductDetail | null;
   categories: AdminCategoryItem[];
+  initialPrefill?: AdminProductPrefill | null;
 }
 
 interface EditableImage {
@@ -208,19 +234,25 @@ function SortableImageCard({
 export function ProductFormClient({
   initialProduct,
   categories,
+  initialPrefill = null,
 }: ProductFormClientProps) {
   const router = useRouter();
   const { toast } = useToast();
   const isEditing = Boolean(initialProduct);
+  const [importDialogOpen, setImportDialogOpen] = React.useState(false);
 
-  const [name, setName] = React.useState(initialProduct?.name ?? "");
-  const [slug, setSlug] = React.useState(initialProduct?.slug ?? "");
+  const [name, setName] = React.useState(
+    initialProduct?.name ?? initialPrefill?.name ?? ""
+  );
+  const [slug, setSlug] = React.useState(
+    initialProduct?.slug ?? initialPrefill?.slug ?? ""
+  );
   const [slugTouched, setSlugTouched] = React.useState(Boolean(initialProduct));
   const [description, setDescription] = React.useState(
-    initialProduct?.description ?? ""
+    initialProduct?.description ?? initialPrefill?.description ?? ""
   );
   const [categoryId, setCategoryId] = React.useState<string>(
-    initialProduct?.category_id ?? "none"
+    initialProduct?.category_id ?? initialPrefill?.category_id ?? "none"
   );
   const [status, setStatus] = React.useState<AdminProductStatus>(
     initialProduct?.status ?? "draft"
@@ -232,10 +264,10 @@ export function ProductFormClient({
     String(initialProduct?.position ?? 0)
   );
   const [price, setPrice] = React.useState(
-    toStringOrEmpty(initialProduct?.price)
+    toStringOrEmpty(initialProduct?.price ?? initialPrefill?.price)
   );
   const [material, setMaterial] = React.useState(
-    initialProduct?.material ?? ""
+    initialProduct?.material ?? initialPrefill?.material ?? ""
   );
   const [printTimeMin, setPrintTimeMin] = React.useState(
     toStringOrEmpty(initialProduct?.print_time_min)
@@ -254,7 +286,9 @@ export function ProductFormClient({
   );
 
   // Tags & Colors
-  const [tags, setTags] = React.useState<string[]>(initialProduct?.tags ?? []);
+  const [tags, setTags] = React.useState<string[]>(
+    initialProduct?.tags ?? initialPrefill?.tags ?? []
+  );
   const [tagInput, setTagInput] = React.useState("");
   const [colors, setColors] = React.useState<string[]>(
     initialProduct?.colors ?? []
@@ -263,8 +297,11 @@ export function ProductFormClient({
 
   // Images
   const [images, setImages] = React.useState<EditableImage[]>(() =>
-    (initialProduct?.images ?? []).map((img, idx) => ({
-      uid: img.id ?? `img-${idx}-${Math.random().toString(36).slice(2, 6)}`,
+    (initialProduct?.images ?? initialPrefill?.images ?? []).map((img, idx) => ({
+      uid:
+        "id" in img && typeof img.id === "string"
+          ? img.id
+          : `img-${idx}-${Math.random().toString(36).slice(2, 6)}`,
       url: img.url,
       is_cover: img.is_cover,
     }))
@@ -289,13 +326,19 @@ export function ProductFormClient({
 
   // Private fields (product_private)
   const [stlUrl, setStlUrl] = React.useState(
-    initialProduct?.private_data.stl_url ?? ""
+    initialProduct?.private_data.stl_url ??
+      initialPrefill?.private_data.stl_url ??
+      ""
   );
   const [sourceUrl, setSourceUrl] = React.useState(
-    initialProduct?.private_data.source_url ?? ""
+    initialProduct?.private_data.source_url ??
+      initialPrefill?.private_data.source_url ??
+      ""
   );
   const [license, setLicense] = React.useState(
-    initialProduct?.private_data.license ?? ""
+    initialProduct?.private_data.license ??
+      initialPrefill?.private_data.license ??
+      ""
   );
   const [cost, setCost] = React.useState(
     toStringOrEmpty(initialProduct?.private_data.cost)
@@ -462,6 +505,7 @@ export function ProductFormClient({
 
     const payload: SaveProductInput = {
       id: initialProduct?.id,
+      import_job_id: initialPrefill?.importJobId,
       name: name.trim(),
       slug: slug.trim() || slugify(name),
       description: description.trim() || null,
@@ -597,6 +641,18 @@ export function ProductFormClient({
         subtitle="Preencha os dados públicos, variações, imagens e metadados internos."
         actions={
           <div className="flex flex-wrap items-center gap-2">
+            {!isEditing && (
+              <Button
+                type="button"
+                variant="secondary"
+                disabled={saving}
+                onClick={() => setImportDialogOpen(true)}
+              >
+                <Link2 className="h-4 w-4 text-accent" />
+                Importar por link
+              </Button>
+            )}
+
             <Button
               type="button"
               variant="secondary"
@@ -631,6 +687,51 @@ export function ProductFormClient({
           </div>
         }
       />
+
+      {initialPrefill && (
+        <div className="space-y-2 rounded-[22px] border border-accent/25 bg-accent-soft/60 px-5 py-4 text-xs text-ink">
+          <div className="flex flex-wrap items-center justify-between gap-2">
+            <div className="flex items-center gap-2 font-semibold">
+              <Link2 className="h-4 w-4 text-accent" />
+              Pré-preenchido por importação externa (salve como rascunho ou publique)
+            </div>
+            {initialPrefill.private_data.source_url && (
+              <a
+                href={initialPrefill.private_data.source_url}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="inline-flex items-center gap-1 font-semibold text-accent hover:underline"
+              >
+                Abrir origem
+                <ExternalLink className="h-3 w-3" />
+              </a>
+            )}
+          </div>
+
+          {initialPrefill.warning && (
+            <div className="flex items-start gap-2 rounded-xl border border-[#F59E0B]/30 bg-[#FEF3C7]/70 px-3 py-2 text-[#92400E]">
+              <AlertTriangle className="mt-0.5 h-3.5 w-3.5 shrink-0" />
+              <span>{initialPrefill.warning}</span>
+            </div>
+          )}
+
+          {initialPrefill.duplicateProduct && (
+            <div className="flex flex-wrap items-center justify-between gap-2 rounded-xl border border-[#F59E0B]/35 bg-[#FEF3C7] px-3 py-2 text-[#92400E]">
+              <span>
+                <strong>Atenção — possível duplicado:</strong> esta origem já está
+                vinculada ao produto{" "}
+                <strong>{initialPrefill.duplicateProduct.name}</strong>.
+              </span>
+              <Link
+                href={`/admin/produtos/${initialPrefill.duplicateProduct.id}`}
+                className="font-semibold underline"
+              >
+                Abrir existente
+              </Link>
+            </div>
+          )}
+        </div>
+      )}
 
       {/* Aviso não-bloqueante sobre licença vazia */}
       {missingLicenseOnPublish && (
@@ -1366,6 +1467,13 @@ export function ProductFormClient({
           </div>
         </aside>
       </div>
+
+      {!isEditing && (
+        <ImportLinkDialog
+          open={importDialogOpen}
+          onOpenChange={setImportDialogOpen}
+        />
+      )}
     </div>
   );
 }
