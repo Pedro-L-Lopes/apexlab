@@ -153,7 +153,7 @@ Oito tabelas. Tudo criado via migrations.
 `id`, `parent_id` (fk para si mesma, nullable), `slug` (único), `name`, `position`, `active`, `show_on_home`, `created_at`.
 
 ### `products`
-`id`, `slug` (único), `name`, `description`, `category_id` (fk, nullable), `status` (enum: `draft` | `active` | `hidden`, padrão `draft`), `featured`, `position`, `price` numeric(10,2), `material`, `print_time_min`, `width_mm`, `height_mm`, `depth_mm`, `weight_g`, `tags` text[] (padrão `{}`), `colors` text[] (padrão `{}`, cores disponíveis exibidas na ficha técnica), `source_url`, `license`, `created_at`, `updated_at` (trigger).
+`id`, `slug` (único), `name`, `description`, `category_id` (fk, nullable), `status` (enum: `draft` | `active` | `hidden`, padrão `draft`), `featured`, `position`, `price` numeric(10,2) (nullable; vazio = "sob consulta"), `material`, `print_time_min`, `width_mm`, `height_mm`, `depth_mm`, `weight_g`, `tags` text[] (padrão `{}`), `colors` text[] (padrão `{}`, cores disponíveis exibidas na ficha técnica), `created_at`, `updated_at` (trigger).
 
 ### `product_images`
 `id`, `product_id` (fk, cascade), `url`, `position`, `is_cover`. Índice único parcial: no máximo 1 capa por produto.
@@ -162,7 +162,7 @@ Oito tabelas. Tudo criado via migrations.
 `id`, `product_id` (fk, cascade), `name`, `price` (nullable, herda do produto), `width_mm`, `height_mm`, `depth_mm`, `weight_g` (todos nullable, herdam do produto), `attributes` jsonb (padrão `{}`, ex.: `{"tamanho":"P","cor":"Preto"}`), `active`, `position`.
 
 ### `product_private`
-`product_id` (pk, fk, cascade), `stl_url`, `cost` numeric(10,2), `notes`.
+`product_id` (pk, fk, cascade), `stl_url`, `source_url` (link de origem do modelo), `license`, `cost` numeric(10,2), `notes`. Tudo que é interno fica aqui: nada disso é exibido nem consultável publicamente.
 
 ### `admins`
 `user_id` (pk, fk `auth.users`, cascade).
@@ -177,10 +177,10 @@ Oito tabelas. Tudo criado via migrations.
 `products(status, category_id, position)`, `products(slug)`, GIN em `products.tags`, `product_images(product_id, position)`, `categories(parent_id, position)`.
 
 ### Storage
-Bucket público `products` (leitura pública, escrita apenas admin).
+Bucket público `products` (5 MB, WebP/JPEG/PNG). As imagens são servidas pela URL pública do bucket; **não** criar policy de SELECT para anônimos em `storage.objects` (evita listar arquivos de produtos em rascunho). SELECT, INSERT, UPDATE e DELETE em `storage.objects` apenas para `is_admin()`.
 
 ### Dados iniciais
-A linha única de `site_settings` (com valores padrão) é inserida **na própria migration**, pois o app depende dela. O `supabase db push` não executa `seed.sql`: as 5 categorias e os 3 produtos de exemplo em `draft` ficam em `supabase/seed.sql` e só são aplicados no banco remoto se eu pedir.
+A linha única de `site_settings` (com valores padrão, `whatsapp` e `instagram` vazios, sem placeholders) é inserida **na própria migration**, pois o app depende dela. O `supabase db push` não executa `seed.sql`: as 5 categorias e os 3 produtos de exemplo em `draft` ficam em `supabase/seed.sql` e só são aplicados no banco remoto se eu pedir.
 
 ---
 
@@ -193,6 +193,7 @@ A linha única de `site_settings` (com valores padrão) é inserida **na própri
 - Estar logado **não** basta para ser admin. O middleware de `/admin` exige sessão **e** `is_admin()`.
 - Testes obrigatórios na Fase 1 (usuário anônimo): não lê `product_private`; não lê produtos em `draft`/`hidden`; não insere, atualiza nem apaga nada.
 - O desativamento de signup é feito por mim no painel do Supabase. Mesmo assim, o código não deve depender disso.
+- **Grants explícitos em toda migration:** neste projeto o Supabase não concede privilégios automaticamente às roles `anon` e `authenticated`, e o Postgres checa o privilégio da tabela **antes** do RLS. Toda tabela ou view nova precisa de `GRANT` explícito na própria migration, com o mínimo necessário: `anon` apenas SELECT nas tabelas públicas; nada para `anon` em `product_private`, `import_jobs` e `admins`; `authenticated` com DML onde o admin precisa (o RLS com `is_admin()` decide). Nunca usar `alter default privileges` para conceder acesso automático.
 
 ---
 
@@ -220,7 +221,7 @@ A linha única de `site_settings` (com valores padrão) é inserida **na própri
 - Título, categoria (link), preço ("a partir de" quando há variantes), descrição.
 - Seletor de variantes em chips; ao escolher, atualiza preço e dimensões.
 - Ficha técnica: material, tempo estimado, dimensões, peso e cores (de `products.colors`).
-- Botão fixo "Pedir no WhatsApp" (fixo na base no celular), usando `whatsapp_message_template` com os campos `{produto}`, `{variante}` e `{link}`.
+- Preço vazio exibe "Sob consulta". Botão fixo "Pedir no WhatsApp" (oculto se `site_settings.whatsapp` estiver vazio) (fixo na base no celular), usando `whatsapp_message_template` com os campos `{produto}`, `{variante}` e `{link}`.
 - Produtos relacionados (mesma categoria).
 - Metadados SEO e Open Graph por produto.
 
@@ -244,10 +245,10 @@ Bento grid no estilo das referências: 1 cartão sólido na cor de destaque com 
 - Seleção múltipla para ações em lote (publicar, ocultar, mudar categoria).
 
 ### 8.4 Formulário de produto — `/admin/produtos/novo` e `/admin/produtos/[id]`
-- Campos: nome, slug (automático, editável), descrição, categoria, tags, preço, material, tempo, dimensões, peso, status, destaque, origem (`source_url`) e licença.
+- Campos: nome, slug (automático, editável), descrição, categoria, tags, preço (opcional), material, tempo, dimensões, peso, cores, status e destaque.
 - Imagens: upload múltiplo com arrastar para reordenar, definir capa e remover. No servidor, converter para WebP e limitar a 1600px de largura (máx. 5 MB por arquivo).
 - Variantes: lista editável (nome, preço, dimensões opcionais, atributos chave/valor).
-- Bloco "Interno": link do STL, custo e notas, com aviso visual de que não é público.
+- Bloco "Interno" (grava em `product_private`): link do STL, origem (`source_url`), licença, custo e notas, com aviso visual de que não é público.
 - Pré-visualização de como o card e a página ficarão na vitrine.
 - Aviso (não bloqueio) se a licença estiver vazia ao publicar.
 - Salvar como rascunho ou publicar.
@@ -269,7 +270,7 @@ Sidebar enxuta na cor de destaque (Dashboard, Produtos, Categorias, Importar, Co
 ## 9. Importação
 
 ### 9.1 Importar por link (individual)
-Botão em `/admin/produtos`. O admin cola a URL do modelo. Um Route Handler no servidor busca a página e extrai título, descrição e imagens via Open Graph e JSON-LD. Abre o formulário de novo produto pré-preenchido (status `draft`) e salva a URL em `source_url`.
+Botão em `/admin/produtos`. O admin cola a URL do modelo. Um Route Handler no servidor busca a página e extrai título, descrição e imagens via Open Graph e JSON-LD. Abre o formulário de novo produto pré-preenchido (status `draft`) e salva a URL em `product_private.source_url`.
 
 ### 9.2 Importar em lote — `/admin/importar`
 1. Caixa de texto: uma linha por item no formato `link_do_modelo, link_do_stl` (o STL é opcional).
