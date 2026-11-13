@@ -212,10 +212,10 @@ export async function getPublicProductBySlug(
 ): Promise<PublicProductDetail | null> {
   "use cache";
   cacheLife("seconds");
-  cacheTag("public-products");
-
   const parsed = slugSchema.safeParse(rawSlug);
   if (!parsed.success) return null;
+
+  cacheTag("public-products", `public-product:${parsed.data}`);
 
   const supabase = createPublicClient();
   const { data: rawProduct, error: productError } = await supabase

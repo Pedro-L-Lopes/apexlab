@@ -30,24 +30,58 @@ export async function updateSession(request: NextRequest) {
     }
   );
 
+  // Valida o JWT no servidor Auth do Supabase (nunca usar getSession)
   const {
     data: { user },
   } = await supabase.auth.getUser();
 
-  const { pathname } = request.nextUrl;
+  const { pathname, search } = request.nextUrl;
+
+  if (pathname.startsWith("/api/admin")) {
+    if (!user) {
+      return NextResponse.json(
+        { error: "Sessão expirada ou não autenticada." },
+        { status: 401 }
+      );
+    }
+
+    const { data: isAdmin, error } = await supabase.rpc("is_admin");
+    if (error || !isAdmin) {
+      return NextResponse.json(
+        { error: "Acesso negado: conta sem permissão de administrador." },
+        { status: 403 }
+      );
+    }
+
+    return supabaseResponse;
+  }
 
   if (pathname.startsWith("/admin")) {
     if (!user) {
       const loginUrl = request.nextUrl.clone();
       loginUrl.pathname = "/login";
+      loginUrl.search = "";
+      loginUrl.searchParams.set("next", `${pathname}${search}`);
       return NextResponse.redirect(loginUrl);
     }
 
     const { data: isAdmin, error } = await supabase.rpc("is_admin");
     if (error || !isAdmin) {
-      const homeUrl = request.nextUrl.clone();
-      homeUrl.pathname = "/";
-      return NextResponse.redirect(homeUrl);
+      const loginUrl = request.nextUrl.clone();
+      loginUrl.pathname = "/login";
+      loginUrl.search = "";
+      loginUrl.searchParams.set("error", "nao-autorizado");
+      return NextResponse.redirect(loginUrl);
+    }
+  }
+
+  if (pathname === "/login" && user) {
+    const { data: isAdmin, error } = await supabase.rpc("is_admin");
+    if (!error && isAdmin) {
+      const adminUrl = request.nextUrl.clone();
+      adminUrl.pathname = "/admin";
+      adminUrl.search = "";
+      return NextResponse.redirect(adminUrl);
     }
   }
 

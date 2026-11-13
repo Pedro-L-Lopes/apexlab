@@ -47,3 +47,14 @@ export function getContrastTextColor(hexColor: string): "#FFFFFF" | "#0E1630" {
   const contrastWithWhite = 1.05 / (luminance + 0.05);
   return contrastWithWhite >= 4.5 ? "#FFFFFF" : "#0E1630";
 }
+
+export function slugify(raw: string): string {
+  return raw
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .toLowerCase()
+    .trim()
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/^-+|-+$/g, "")
+    .slice(0, 120);
+}
