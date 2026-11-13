@@ -1,26 +1,52 @@
 @import "tailwindcss";
 
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
+  --bg: #F3F6FC;
+  --accent: #1F4FFF;
+  --bg-glow: radial-gradient(
+    circle at top right,
+    color-mix(in srgb, var(--accent) 12%, transparent),
+    transparent 60%
+  );
+  --surface: #FFFFFF;
+  --surface-glass: rgba(255, 255, 255, 0.72);
+  --ink: #0E1630;
+  --ink-deep: #0B1230;
+  --muted: #6B7488;
+  --line: #E3E8F2;
+  --accent-strong: color-mix(in srgb, var(--accent) 82%, black);
+  --accent-soft: color-mix(in srgb, var(--accent) 10%, white);
+  --radius-input: 14px;
+  --radius-card: 24px;
+  --radius-block: 28px;
+  --shadow-card: 0 1px 2px rgba(16, 24, 40, 0.04), 0 12px 32px rgba(31, 79, 255, 0.06);
 }
 
 @theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
-}
+  --color-bg: var(--bg);
+  --color-surface: var(--surface);
+  --color-ink: var(--ink);
+  --color-ink-deep: var(--ink-deep);
+  --color-muted: var(--muted);
+  --color-line: var(--line);
+  --color-accent: var(--accent);
+  --color-accent-strong: var(--accent-strong);
+  --color-accent-soft: var(--accent-soft);
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
+  --font-sans: var(--font-inter);
+  --font-display: var(--font-jakarta);
+
+  --radius-input: var(--radius-input);
+  --radius-card: var(--radius-card);
+  --radius-block: var(--radius-block);
+
+  --shadow-card: var(--shadow-card);
 }
 
 body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  background-color: var(--bg);
+  background-image: var(--bg-glow);
+  background-attachment: fixed;
+  color: var(--ink);
+  font-family: var(--font-inter), sans-serif;
 }
