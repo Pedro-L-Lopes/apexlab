@@ -3,6 +3,7 @@
 :root {
   --bg: #F3F6FC;
   --accent: #1F4FFF;
+  --accent-foreground: #FFFFFF;
   --bg-glow: radial-gradient(
     circle at top right,
     color-mix(in srgb, var(--accent) 12%, transparent),
@@ -32,6 +33,7 @@
   --color-accent: var(--accent);
   --color-accent-strong: var(--accent-strong);
   --color-accent-soft: var(--accent-soft);
+  --color-accent-foreground: var(--accent-foreground);
 
   --font-sans: var(--font-inter);
   --font-display: var(--font-jakarta);
@@ -49,4 +51,30 @@ body {
   background-attachment: fixed;
   color: var(--ink);
   font-family: var(--font-inter), sans-serif;
+}
+
+@keyframes shimmer {
+  0% {
+    background-position: 200% 0;
+  }
+  100% {
+    background-position: -200% 0;
+  }
+}
+
+.skeleton-shimmer {
+  background: linear-gradient(
+    90deg,
+    #e8edf7 0%,
+    #f6f8fd 50%,
+    #e8edf7 100%
+  );
+  background-size: 200% 100%;
+  animation: shimmer 1.6s ease-in-out infinite;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .skeleton-shimmer {
+    animation: none;
+  }
 }
