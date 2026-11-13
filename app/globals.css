@@ -45,6 +45,11 @@
   --shadow-card: var(--shadow-card);
 }
 
+html,
+body {
+  overflow-x: clip;
+}
+
 body {
   background-color: var(--bg);
   background-image: var(--bg-glow);
