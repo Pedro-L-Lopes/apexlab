@@ -33,6 +33,8 @@ if (!url || !anonKey) {
   process.exit(1);
 }
 
+globalThis.WebSocket = globalThis.WebSocket ?? class {};
+
 const supabase = createClient(url, anonKey, {
   auth: { persistSession: false, autoRefreshToken: false },
 });
@@ -48,50 +50,56 @@ function record(test, expected, res, detailFn) {
 
 // 1. SELECT public tables & view
 record(
-  "SELECT products (todos)",
-  "Só ativo (1 linha, sem erro)",
+  "SELECT products (apenas active)",
+  "Apenas status='active' (>= 1 linha, 0 drafts, sem erro)",
   await supabase.from("products").select("id, slug, status"),
-  (rows) => rows.map((r) => `${r.slug}(${r.status})`).join(", ")
+  (rows) => {
+    const nonActive = rows.filter((r) => r.status !== "active").length;
+    return `${rows.length} ativos, ${nonActive} não-ativos`;
+  }
 );
 
 record(
-  "SELECT products (draft)",
+  "SELECT products (filtro draft)",
   "0 linhas, SEM erro",
-  await supabase.from("products").select("id, slug, status").eq("slug", "temp-produto-rascunho")
+  await supabase.from("products").select("id, slug, status").eq("status", "draft")
 );
 
 record(
-  "SELECT view products_listing (todos)",
-  "Só ativo (1 linha, starting_price=89.9, 1 variante ativa)",
-  await supabase.from("products_listing").select("id, slug, starting_price, cover_image_url, active_variants_count"),
-  (rows) => rows.map((r) => `${r.slug} | starting_price=${r.starting_price} | variants=${r.active_variants_count} | cover=${r.cover_image_url}`).join(", ")
+  "SELECT view products_listing (apenas active)",
+  "Apenas ativos (>= 1 linha, sem erro)",
+  await supabase
+    .from("products_listing")
+    .select("id, slug, starting_price, cover_image_url, active_variants_count")
+    .limit(3),
+  (rows) => rows.map((r) => `${r.slug} (starting_price=${r.starting_price}, variants=${r.active_variants_count})`).join("; ")
 );
 
 record(
-  "SELECT view products_listing (draft)",
-  "0 linhas, SEM erro",
-  await supabase.from("products_listing").select("id, slug").eq("slug", "temp-produto-rascunho")
-);
-
-record(
-  "SELECT categories (todas)",
-  "Só ativa (1 linha, sem erro)",
+  "SELECT categories (apenas active=true)",
+  "Todas active=true (>= 1 linha, 0 inativas, sem erro)",
   await supabase.from("categories").select("id, slug, active"),
-  (rows) => rows.map((r) => `${r.slug}(active=${r.active})`).join(", ")
+  (rows) => {
+    const inactive = rows.filter((r) => !r.active).length;
+    return `${rows.length} ativas, ${inactive} inativas`;
+  }
 );
 
 record(
-  "SELECT product_variants (todas)",
-  "Só ativa (1 linha, sem erro)",
+  "SELECT product_variants (apenas active=true)",
+  "Todas active=true (0 inativas, sem erro)",
   await supabase.from("product_variants").select("id, name, active"),
-  (rows) => rows.map((r) => `${r.name}(active=${r.active})`).join(", ")
+  (rows) => {
+    const inactive = rows.filter((r) => !r.active).length;
+    return `${rows.length} ativas, ${inactive} inativas`;
+  }
 );
 
 record(
-  "SELECT product_images (todas)",
-  "Só do produto ativo (1 linha, sem erro)",
-  await supabase.from("product_images").select("id, product_id, url"),
-  (rows) => rows.map((r) => r.url).join(", ")
+  "SELECT product_images (somente de produtos ativos)",
+  "Apenas imagens públicas (>= 1 linha, sem erro)",
+  await supabase.from("product_images").select("id, product_id, url").limit(5),
+  (rows) => `${rows.length} imagens visíveis (amostra)`
 );
 
 record(

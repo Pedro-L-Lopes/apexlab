@@ -15,7 +15,17 @@ const inter = Inter({
   subsets: ["latin"],
 });
 
+function resolveMetadataBase(): URL {
+  const raw = process.env.NEXT_PUBLIC_SITE_URL?.trim() || "http://localhost:3000";
+  try {
+    return new URL(raw);
+  } catch {
+    return new URL("http://localhost:3000");
+  }
+}
+
 export const metadata: Metadata = {
+  metadataBase: resolveMetadataBase(),
   title: "Catálogo 3D",
   description: "Catálogo de produtos de impressão 3D",
 };
