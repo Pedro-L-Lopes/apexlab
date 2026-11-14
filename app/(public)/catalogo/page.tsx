@@ -35,7 +35,7 @@ export async function generateMetadata(): Promise<Metadata> {
 
 function CatalogSkeleton() {
   return (
-    <div className="mx-auto max-w-6xl px-4 pb-20 pt-8 sm:px-6 sm:pt-12">
+    <div className="mx-auto max-w-[1320px] px-4 pb-20 pt-8 sm:px-8 sm:pt-12">
       <div className="space-y-3">
         <Skeleton className="h-3.5 w-32" />
         <Skeleton className="h-10 w-56" />

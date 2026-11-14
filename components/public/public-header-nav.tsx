@@ -75,7 +75,7 @@ export function PublicHeaderNav() {
   return (
     <nav
       aria-label="Navegação principal"
-      className="flex items-center gap-1 rounded-full border border-line/70 bg-[#E9EFF9]/70 p-1"
+      className="flex items-center gap-0.5 rounded-full border border-line/70 bg-[#E9EFF9]/70 p-0.5 sm:gap-1 sm:p-1"
     >
       {LINKS.map((link) => {
         const isActive =
@@ -103,7 +103,7 @@ export function PublicHeaderNav() {
             onClick={handleClick}
             aria-current={isActive ? "page" : undefined}
             className={cn(
-              "relative rounded-full px-3.5 py-1.5 text-xs font-semibold transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/40",
+              "relative rounded-full px-2.5 py-1 text-xs font-semibold transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/40 sm:px-3.5 sm:py-1.5",
               isActive ? "text-ink" : "text-muted hover:text-ink"
             )}
           >

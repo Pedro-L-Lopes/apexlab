@@ -46,7 +46,7 @@ export default async function PublicLayout({
         Pular para o conteúdo principal
       </a>
       <PublicHeader settings={settings} />
-      <main id="conteudo-principal" className="flex-1">
+      <main id="conteudo-principal" className="flex-1 pt-16 sm:pt-[72px]">
         {children}
       </main>
       <PublicFooter settings={settings} />

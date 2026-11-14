@@ -3,7 +3,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 export default function CatalogoLoading() {
   return (
     <div
-      className="mx-auto max-w-6xl px-4 pb-20 pt-8 sm:px-6 sm:pt-12"
+      className="mx-auto max-w-[1320px] px-4 pb-20 pt-8 sm:px-8 sm:pt-12"
       aria-label="Carregando catálogo"
       aria-busy="true"
     >

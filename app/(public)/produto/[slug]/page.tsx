@@ -45,7 +45,7 @@ export async function generateMetadata({
 
 function ProductDetailSkeleton() {
   return (
-    <div className="mx-auto max-w-6xl px-4 pb-20 pt-8 sm:px-6 sm:pt-10">
+    <div className="mx-auto max-w-[1320px] px-4 pb-20 pt-8 sm:px-8 sm:pt-10">
       <Skeleton className="mb-6 h-4 w-48" />
       <div className="grid gap-8 lg:grid-cols-12 lg:gap-12">
         <div className="lg:col-span-6">

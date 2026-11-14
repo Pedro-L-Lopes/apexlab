@@ -147,7 +147,7 @@ Em `docs/referencias/` há 3 imagens (`ref-1-listagem.png`, `ref-2-dashboard.png
 Oito tabelas. Tudo criado via migrations.
 
 ### `site_settings` (uma única linha)
-`id`, `name`, `description`, `logo_url`, `banner_url`, `primary_color`, `whatsapp` (somente dígitos, com DDI), `whatsapp_message_template`, `instagram`, `updated_at`. Garantir por constraint que só exista 1 linha.
+`id`, `name`, `description`, `logo_url`, `banner_url`, `primary_color`, `whatsapp` (somente dígitos, com DDI), `whatsapp_message_template`, `instagram`, `hero_mode` (`text` | `image` | `none`, padrão `text`), `home_category_id` (fk para `categories`, nullable, `on delete set null`; nulo = usar produtos em destaque), `updated_at`. Garantir por constraint que só exista 1 linha.
 
 ### `categories`
 `id`, `parent_id` (fk para si mesma, nullable), `slug` (único), `name`, `position`, `active`, `show_on_home`, `created_at`.
@@ -200,10 +200,10 @@ A linha única de `site_settings` (com valores padrão, `whatsapp` e `instagram`
 ## 7. Telas públicas
 
 ### 7.1 Home — `/`
-- Hero curto: título, subtítulo (de `site_settings`), botão para o catálogo e botão de WhatsApp.
+- **Hero compacto** (altura máxima ~280px no desktop e ~220px no celular; pouco texto: título, uma linha de subtítulo, botão do catálogo e botão de WhatsApp; sem cartões de estatística). Modo definido por `site_settings.hero_mode`: `text` (hero compacto de texto), `image` (exibe a imagem `banner_url` enviada pelo admin como banner, proporção ~3:1 no desktop e ~2:1 no celular, cantos arredondados) ou `none` (sem hero: a home começa nas categorias). Se o modo for `image` e não houver `banner_url`, usar `text`.
 - Categorias em destaque (`show_on_home`) em **cartões compactos** (altura ~96px: ícone, nome e contagem). No celular, carrossel horizontal com *scroll snap*, mostrando cerca de 2,3 cartões por vez para indicar que dá para rolar; no desktop, grade de até 6 cartões. Exibir apenas categorias com pelo menos 1 produto ativo. Nunca cartões altos que ocupem a tela inteira.
 - Os números do hero são reais e coerentes com o rótulo: produtos ativos e categorias com produtos ativos.
-- Produtos em destaque (`featured`) em grade.
+- Seção de produtos da home: mostra os produtos da categoria definida em `site_settings.home_category_id` (até 8, por posição) e usa o nome da categoria como título, com link "Ver todos (N)" para `/catalogo?categoria=<slug>`. Se `home_category_id` for nulo, mostra os produtos com `featured = true` sob o título "Peças selecionadas".
 - Bloco "Como pedir" em 3 passos (escolha, chame no WhatsApp, receba).
 - Rodapé com logo, Instagram e WhatsApp.
 
@@ -236,6 +236,7 @@ A linha única de `site_settings` (com valores padrão, `whatsapp` e `instagram`
 - Página 404 bonita, `sitemap.xml`, `robots.txt`, favicon da marca.
 
 ### 7.5 Navegação (header)
+- Header em formato de **cápsula**: barra flutuante, centralizada, afastada ~12px do topo, com a largura máxima do conteúdo, totalmente arredondada, fundo `--surface-glass` com `backdrop-blur`, borda `--line` e sombra suave. Logo à esquerda, menu (Início, Catálogo) e botão de WhatsApp à direita (oculto se `whatsapp` estiver vazio). No celular, a mesma cápsula compacta. Fica fixa no topo e a página tem `padding-top` para o conteúdo não ficar embaixo dela.
 - Menu em pílula (Início, Catálogo) com **indicador deslizante** (`layoutId`) que anima entre os itens ao trocar de rota, com mola curta (250–350ms) e `prefers-reduced-motion` respeitado.
 - Clicar em "Início" (ou no logo) com a rota já em `/` rola suavemente até o topo, de qualquer ponto da página (`scrollTo({ top: 0, behavior: 'smooth' })`, sem animação se reduced-motion), sem recarregar. Em outra rota, navega para `/` já no topo.
 - Ao trocar de rota, a página nova abre no topo.
@@ -252,7 +253,7 @@ E-mail e senha. Sem cadastro, sem recuperação de senha. Mensagens de erro clar
 Bento grid no estilo das referências: 1 cartão sólido na cor de destaque com o total de produtos ativos (número grande, contagem animada), cartões brancos com rascunhos, ocultos e categorias, lista dos últimos produtos editados e 1 cartão escuro com o atalho "Importar produtos". Atalho "Novo produto" no cabeçalho. Sem métricas inventadas: apenas contagens reais do banco.
 
 ### 8.3 Produtos — `/admin/produtos`
-- Tabela com miniatura, nome, categoria, preço, status, destaque.
+- **Listagem sem rolagem horizontal** em telas a partir de 1024px, com a sidebar expandida ou recolhida. Colunas: seleção, produto (miniatura, nome em 1 linha com truncamento e slug pequeno), categoria, preço, status (selo), destaque (ícone de estrela) e **ações sempre visíveis** em coluna fixa à direita (editar + menu "⋯" com publicar/ocultar, destacar, duplicar e excluir). Alertas como "sem licença" viram um ícone pequeno com tooltip, não texto na linha. Linhas compactas (~56–64px). No celular, a lista vira cartões empilhados (miniatura, nome, preço, status e botão de ações), sem tabela.
 - Busca, filtro por status e categoria.
 - Ações rápidas: publicar/ocultar, destacar, duplicar, excluir (com confirmação).
 - Seleção múltipla para ações em lote (publicar, ocultar, mudar categoria).
@@ -264,7 +265,7 @@ Bento grid no estilo das referências: 1 cartão sólido na cor de destaque com 
 - Bloco "Interno" (grava em `product_private`): link do STL, origem (`source_url`), licença, custo e notas, com aviso visual de que não é público.
 - Pré-visualização de como o card e a página ficarão na vitrine.
 - Aviso (não bloqueio) se a licença estiver vazia ao publicar.
-- Salvar como rascunho ou publicar.
+- Salvar como rascunho ou publicar. Botões: "Salvar" (volta para a lista com aviso de sucesso) e "Salvar e adicionar outro", que **limpa o formulário por completo** (campos, imagens e pré-visualizações, variantes, bloco interno, slug automático e qualquer rascunho local), mantém apenas a categoria escolhida e foca o campo nome. Em criação nova, o formulário nunca reaparece preenchido com dados do produto anterior.
 
 ### 8.5 Categorias — `/admin/categorias`
 CRUD com subcategorias, reordenação por arrastar, alternar `active` e `show_on_home`.
@@ -273,10 +274,10 @@ CRUD com subcategorias, reordenação por arrastar, alternar `active` e `show_on
 Duas abas: **Por links** (seções 9.1 a 9.3) e **Planilha manual** (seção 9.4).
 
 ### 8.7 Configurações — `/admin/configuracoes`
-Editar `site_settings`: nome, descrição, logo, banner, cor de destaque (com preview), WhatsApp, Instagram e modelo da mensagem do WhatsApp.
+Editar `site_settings`: nome, descrição, logo, banner (upload de imagem), **modo do hero** (texto, imagem ou nenhum), **categoria da home** (select de categorias ativas ou "Produtos em destaque"), cor de destaque (com preview), WhatsApp, Instagram e modelo da mensagem do WhatsApp.
 
 ### Layout do admin
-Sidebar enxuta na cor de destaque (Dashboard, Produtos, Categorias, Importar, Configurações), item ativo em pílula translúcida, rótulos de seção em caixa alta pequena e contadores à direita; topo com botão "Ver site" e "Sair". Mesma linguagem visual do site público.
+Sidebar enxuta (Dashboard, Produtos, Categorias, Importar, Configurações), **recolhível no desktop** (botão que alterna entre expandida, só ícones com tooltip e oculta; o estado é lembrado no navegador), item ativo em pílula translúcida, rótulos de seção em caixa alta pequena e contadores à direita. **Contraste:** a cor da sidebar é derivada da cor de destaque, escurecida até o texto branco passar contraste AA (4.5:1); nunca texto preto sobre laranja vivo. Texto secundário em branco a ~72% e ícones nítidos. No celular, a sidebar vira gaveta (drawer); topo com botão "Ver site" e "Sair". Mesma linguagem visual do site público.
 
 ---
 
