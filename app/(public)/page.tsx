@@ -9,8 +9,8 @@ import { Skeleton } from "@/components/ui/skeleton";
 
 function HomeSkeleton() {
   return (
-    <div className="mx-auto max-w-[1320px] space-y-14 px-4 pt-8 pb-6 sm:px-8 sm:pt-12">
-      <Skeleton className="h-72 w-full rounded-[28px]" />
+    <div className="mx-auto max-w-[1320px] space-y-12 px-4 pt-4 pb-6 sm:space-y-16 sm:px-8 sm:pt-6">
+      <Skeleton className="h-44 w-full rounded-[24px] sm:h-52 sm:rounded-[28px]" />
       <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 sm:gap-4 lg:grid-cols-6">
         {Array.from({ length: 6 }).map((_, i) => (
           <Skeleton key={i} className="h-24 rounded-[20px]" />
