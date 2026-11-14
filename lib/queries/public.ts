@@ -3,6 +3,15 @@ import { z } from "zod";
 import { createPublicClient } from "@/lib/supabase/server";
 import type { Json } from "@/types/database";
 
+export type HeroMode = "text" | "image" | "none";
+
+export function normalizeHeroMode(value: string | null | undefined): HeroMode {
+  if (value === "image" || value === "none") {
+    return value;
+  }
+  return "text";
+}
+
 export interface PublicSiteSettings {
   id: number;
   name: string;
@@ -13,6 +22,8 @@ export interface PublicSiteSettings {
   whatsapp: string;
   whatsapp_message_template: string;
   instagram: string | null;
+  hero_mode: HeroMode;
+  home_category_id: string | null;
 }
 
 export interface PublicCategory {
@@ -89,6 +100,8 @@ const DEFAULT_SETTINGS: PublicSiteSettings = {
   whatsapp_message_template:
     "Olá! Tenho interesse no produto *{produto}* ({variante}). Link: {link}",
   instagram: null,
+  hero_mode: "text",
+  home_category_id: null,
 };
 
 const LISTING_COLUMNS =
@@ -154,7 +167,7 @@ export async function getPublicSiteSettings(): Promise<PublicSiteSettings> {
   const { data, error } = await supabase
     .from("site_settings")
     .select(
-      "id, name, description, logo_url, banner_url, primary_color, whatsapp, whatsapp_message_template, instagram"
+      "id, name, description, logo_url, banner_url, primary_color, whatsapp, whatsapp_message_template, instagram, hero_mode, home_category_id"
     )
     .eq("id", 1)
     .maybeSingle();
@@ -163,7 +176,10 @@ export async function getPublicSiteSettings(): Promise<PublicSiteSettings> {
     return DEFAULT_SETTINGS;
   }
 
-  return data;
+  return {
+    ...data,
+    hero_mode: normalizeHeroMode(data.hero_mode),
+  };
 }
 
 export async function getPublicCategories(): Promise<PublicCategory[]> {

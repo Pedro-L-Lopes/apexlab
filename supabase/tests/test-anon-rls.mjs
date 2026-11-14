@@ -105,8 +105,8 @@ record(
 record(
   "SELECT site_settings",
   "1 linha (sem erro)",
-  await supabase.from("site_settings").select("id, name, primary_color, whatsapp, instagram"),
-  (rows) => rows.map((r) => `id=${r.id} name=${r.name} whatsapp='${r.whatsapp}' instagram=${r.instagram}`).join(", ")
+  await supabase.from("site_settings").select("id, name, primary_color, whatsapp, instagram, hero_mode, home_category_id"),
+  (rows) => rows.map((r) => `id=${r.id} name=${r.name} whatsapp='${r.whatsapp}' instagram=${r.instagram} hero_mode=${r.hero_mode} home_category_id=${r.home_category_id}`).join(", ")
 );
 
 // 2. Private tables (must be permission denied)

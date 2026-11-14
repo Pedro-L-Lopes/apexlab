@@ -356,6 +356,8 @@ export type Database = {
         Row: {
           banner_url: string | null
           description: string
+          hero_mode: string
+          home_category_id: string | null
           id: number
           instagram: string | null
           logo_url: string | null
@@ -368,6 +370,8 @@ export type Database = {
         Insert: {
           banner_url?: string | null
           description?: string
+          hero_mode?: string
+          home_category_id?: string | null
           id?: number
           instagram?: string | null
           logo_url?: string | null
@@ -380,6 +384,8 @@ export type Database = {
         Update: {
           banner_url?: string | null
           description?: string
+          hero_mode?: string
+          home_category_id?: string | null
           id?: number
           instagram?: string | null
           logo_url?: string | null
@@ -389,7 +395,15 @@ export type Database = {
           whatsapp?: string
           whatsapp_message_template?: string
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "site_settings_home_category_id_fkey"
+            columns: ["home_category_id"]
+            isOneToOne: false
+            referencedRelation: "categories"
+            referencedColumns: ["id"]
+          },
+        ]
       }
     }
     Views: {

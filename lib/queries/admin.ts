@@ -1,5 +1,6 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 import type { Database, Json } from "@/types/database";
+import { normalizeHeroMode, type HeroMode } from "@/lib/queries/public";
 
 export type AdminProductStatus = Database["public"]["Enums"]["product_status"];
 
@@ -13,7 +14,36 @@ export interface AdminSiteSettings {
   whatsapp: string;
   whatsapp_message_template: string;
   instagram: string | null;
+  hero_mode: HeroMode;
+  home_category_id: string | null;
   updated_at: string;
+}
+
+function normalizeAdminSiteSettings(
+  data: Database["public"]["Tables"]["site_settings"]["Row"] | null
+): AdminSiteSettings {
+  if (!data) {
+    return {
+      id: 1,
+      name: "Catálogo 3D",
+      description: "",
+      logo_url: null,
+      banner_url: null,
+      primary_color: "#1F4FFF",
+      whatsapp: "",
+      whatsapp_message_template:
+        "Olá! Tenho interesse no produto *{produto}* ({variante}). Link: {link}",
+      instagram: null,
+      hero_mode: "text",
+      home_category_id: null,
+      updated_at: "",
+    };
+  }
+
+  return {
+    ...data,
+    hero_mode: normalizeHeroMode(data.hero_mode),
+  };
 }
 
 export interface AdminCategoryItem {
@@ -136,19 +166,7 @@ export async function getAdminShellData(supabase: SupabaseClient<Database>): Pro
         .select("id", { count: "exact", head: true }),
     ]);
 
-  const settings: AdminSiteSettings = settingsRes.data ?? {
-    id: 1,
-    name: "Catálogo 3D",
-    description: "",
-    logo_url: null,
-    banner_url: null,
-    primary_color: "#1F4FFF",
-    whatsapp: "",
-    whatsapp_message_template:
-      "Olá! Tenho interesse no produto *{produto}* ({variante}). Link: {link}",
-    instagram: null,
-    updated_at: "",
-  };
+  const settings = normalizeAdminSiteSettings(settingsRes.data);
 
   return {
     settings,
@@ -402,19 +420,5 @@ export async function getAdminSiteSettings(
     .eq("id", 1)
     .maybeSingle();
 
-  return (
-    data ?? {
-      id: 1,
-      name: "Catálogo 3D",
-      description: "",
-      logo_url: null,
-      banner_url: null,
-      primary_color: "#1F4FFF",
-      whatsapp: "",
-      whatsapp_message_template:
-        "Olá! Tenho interesse no produto *{produto}* ({variante}). Link: {link}",
-      instagram: null,
-      updated_at: "",
-    }
-  );
+  return normalizeAdminSiteSettings(data);
 }

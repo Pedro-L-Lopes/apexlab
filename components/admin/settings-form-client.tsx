@@ -7,24 +7,61 @@ import {
   Box,
   Check,
   Image as ImageIcon,
+  LayoutTemplate,
   MessageCircle,
   Palette,
   Save,
   Trash2,
   Upload,
 } from "lucide-react";
-import type { AdminSiteSettings } from "@/lib/queries/admin";
+import type {
+  AdminCategoryItem,
+  AdminSiteSettings,
+} from "@/lib/queries/admin";
+import type { HeroMode } from "@/lib/queries/public";
 import { updateSiteSettingsAction } from "@/lib/actions/admin-settings";
 import { buildWhatsAppProductUrl } from "@/lib/whatsapp";
 import { cn, getContrastTextColor } from "@/lib/utils";
 import { Button, buttonVariants } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { PageHeader } from "@/components/ui/page-header";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { useToast } from "@/components/ui/toast";
 
 interface SettingsFormClientProps {
   initialSettings: AdminSiteSettings;
+  activeCategories: AdminCategoryItem[];
 }
+
+const HOME_CATEGORY_FEATURED = "__featured__";
+
+const HERO_MODE_OPTIONS: Array<{
+  value: HeroMode;
+  label: string;
+  description: string;
+}> = [
+  {
+    value: "text",
+    label: "Texto compacto",
+    description: "Faixa com nome da loja, resumo e busca rápida.",
+  },
+  {
+    value: "image",
+    label: "Banner de imagem",
+    description: "Exibe o banner enviado; se não houver, usa texto.",
+  },
+  {
+    value: "none",
+    label: "Nenhum (oculto)",
+    description: "Inicia direto pelas categorias e produtos.",
+  },
+];
 
 const PRESET_COLORS = [
   "#1F4FFF",
@@ -39,9 +76,16 @@ const PRESET_COLORS = [
 
 export function SettingsFormClient({
   initialSettings,
+  activeCategories,
 }: SettingsFormClientProps) {
   const router = useRouter();
   const { toast } = useToast();
+
+  const initialHomeCategoryId =
+    initialSettings.home_category_id &&
+    activeCategories.some((c) => c.id === initialSettings.home_category_id)
+      ? initialSettings.home_category_id
+      : "";
 
   const [name, setName] = React.useState(initialSettings.name);
   const [description, setDescription] = React.useState(
@@ -50,6 +94,12 @@ export function SettingsFormClient({
   const [logoUrl, setLogoUrl] = React.useState(initialSettings.logo_url ?? "");
   const [bannerUrl, setBannerUrl] = React.useState(
     initialSettings.banner_url ?? ""
+  );
+  const [heroMode, setHeroMode] = React.useState<HeroMode>(
+    initialSettings.hero_mode
+  );
+  const [homeCategoryId, setHomeCategoryId] = React.useState<string>(
+    initialHomeCategoryId
   );
   const [primaryColor, setPrimaryColor] = React.useState(
     initialSettings.primary_color || "#1F4FFF"
@@ -140,6 +190,8 @@ export function SettingsFormClient({
       whatsapp: whatsapp.trim(),
       instagram: instagram.trim() || null,
       whatsapp_message_template: template.trim(),
+      hero_mode: heroMode,
+      home_category_id: homeCategoryId.trim() || null,
     });
     setSaving(false);
 
@@ -322,6 +374,107 @@ export function SettingsFormClient({
                   </div>
                 </div>
               </div>
+            </div>
+          </section>
+
+          {/* Destaque da página inicial (Home) */}
+          <section className="rounded-[24px] border border-line bg-surface p-6 shadow-card space-y-5">
+            <div className="flex items-center gap-2">
+              <LayoutTemplate className="h-4 w-4 text-accent" />
+              <h2 className="font-display text-lg font-bold text-ink">
+                Destaque da página inicial (Home)
+              </h2>
+            </div>
+
+            <div className="space-y-2.5">
+              <p
+                id="hero-mode-label"
+                className="text-xs font-semibold uppercase tracking-[0.12em] text-muted"
+              >
+                Modo do hero
+              </p>
+              <div
+                role="radiogroup"
+                aria-labelledby="hero-mode-label"
+                className="grid grid-cols-1 gap-3 sm:grid-cols-3"
+              >
+                {HERO_MODE_OPTIONS.map((option) => {
+                  const selected = heroMode === option.value;
+                  return (
+                    <button
+                      key={option.value}
+                      type="button"
+                      role="radio"
+                      aria-checked={selected}
+                      onClick={() => setHeroMode(option.value)}
+                      className={cn(
+                        "flex flex-col items-start gap-1 rounded-[18px] border p-3.5 text-left transition-all cursor-pointer",
+                        selected
+                          ? "border-accent bg-accent/5 ring-2 ring-accent/20"
+                          : "border-line bg-bg/50 hover:border-muted/50 hover:bg-bg"
+                      )}
+                    >
+                      <span className="flex w-full items-center justify-between gap-2">
+                        <span className="text-sm font-semibold text-ink">
+                          {option.label}
+                        </span>
+                        <span
+                          className={cn(
+                            "flex h-4 w-4 shrink-0 items-center justify-center rounded-full border",
+                            selected
+                              ? "border-accent bg-accent text-white"
+                              : "border-muted/50 bg-surface"
+                          )}
+                        >
+                          {selected && <Check className="h-2.5 w-2.5" />}
+                        </span>
+                      </span>
+                      <span className="text-xs leading-relaxed text-muted">
+                        {option.description}
+                      </span>
+                    </button>
+                  );
+                })}
+              </div>
+              {heroMode === "image" && !bannerUrl.trim() && (
+                <p className="text-xs text-muted">
+                  Nenhum banner enviado acima — enquanto estiver vazio, a home exibirá o modo texto como fallback.
+                </p>
+              )}
+            </div>
+
+            <div className="space-y-2">
+              <label
+                htmlFor="home-category-select"
+                className="block text-xs font-semibold uppercase tracking-[0.12em] text-muted"
+              >
+                Categoria exibida na home
+              </label>
+              <Select
+                value={homeCategoryId || HOME_CATEGORY_FEATURED}
+                onValueChange={(value) =>
+                  setHomeCategoryId(
+                    value === HOME_CATEGORY_FEATURED ? "" : value
+                  )
+                }
+              >
+                <SelectTrigger id="home-category-select">
+                  <SelectValue placeholder="Produtos em destaque (padrão)" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value={HOME_CATEGORY_FEATURED}>
+                    Produtos em destaque (padrão)
+                  </SelectItem>
+                  {activeCategories.map((category) => (
+                    <SelectItem key={category.id} value={category.id}>
+                      {category.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              <p className="text-xs text-muted">
+                Escolha uma categoria para destacá-la na seção principal da home ou mantenha os produtos em destaque.
+              </p>
             </div>
           </section>
 

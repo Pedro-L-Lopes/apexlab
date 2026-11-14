@@ -1,6 +1,9 @@
 import type { Metadata } from "next";
 import { requireAdminPage } from "@/lib/auth/admin";
-import { getAdminSiteSettings } from "@/lib/queries/admin";
+import {
+  getAdminCategories,
+  getAdminSiteSettings,
+} from "@/lib/queries/admin";
 import { SettingsFormClient } from "@/components/admin/settings-form-client";
 
 export const metadata: Metadata = {
@@ -9,7 +12,16 @@ export const metadata: Metadata = {
 
 export default async function AdminSettingsPage() {
   const { supabase } = await requireAdminPage();
-  const settings = await getAdminSiteSettings(supabase);
+  const [settings, categories] = await Promise.all([
+    getAdminSiteSettings(supabase),
+    getAdminCategories(supabase),
+  ]);
+  const activeCategories = categories.filter((category) => category.active);
 
-  return <SettingsFormClient initialSettings={settings} />;
+  return (
+    <SettingsFormClient
+      initialSettings={settings}
+      activeCategories={activeCategories}
+    />
+  );
 }

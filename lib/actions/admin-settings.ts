@@ -22,6 +22,8 @@ const settingsSchema = z.object({
     .trim()
     .min(5, "Informe um modelo de mensagem válido.")
     .max(500),
+  hero_mode: z.enum(["text", "image", "none"]).default("text"),
+  home_category_id: z.string().uuid("Categoria inválida.").nullable(),
 });
 
 export type UpdateSiteSettingsInput = z.infer<typeof settingsSchema>;
@@ -54,6 +56,8 @@ export async function updateSiteSettingsAction(
       whatsapp: whatsappDigits,
       instagram: input.instagram || null,
       whatsapp_message_template: input.whatsapp_message_template,
+      hero_mode: input.hero_mode,
+      home_category_id: input.home_category_id || null,
     })
     .eq("id", 1);
 
