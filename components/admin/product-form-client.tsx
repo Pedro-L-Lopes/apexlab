@@ -26,13 +26,11 @@ import {
   ArrowLeft,
   Crown,
   ExternalLink,
-  EyeOff,
   GripVertical,
   Link2,
   Lock,
   Plus,
   Save,
-  Send,
   Trash2,
   Upload,
   X,
@@ -47,7 +45,6 @@ import {
   type SaveProductInput,
 } from "@/lib/actions/admin-products";
 import { cn, formatCurrencyBRL, slugify } from "@/lib/utils";
-import { Badge } from "@/components/ui/badge";
 import { Button, buttonVariants } from "@/components/ui/button";
 import { SwitchToggle } from "@/components/ui/controls";
 import { Input } from "@/components/ui/input";
@@ -240,6 +237,11 @@ export function ProductFormClient({
   const { toast } = useToast();
   const isEditing = Boolean(initialProduct);
   const [importDialogOpen, setImportDialogOpen] = React.useState(false);
+  const [activePrefill, setActivePrefill] =
+    React.useState<AdminProductPrefill | null>(initialPrefill);
+  const [resetNonce, setResetNonce] = React.useState(0);
+  const nameInputRef = React.useRef<HTMLInputElement>(null);
+  const fileInputRef = React.useRef<HTMLInputElement>(null);
 
   const [name, setName] = React.useState(
     initialProduct?.name ?? initialPrefill?.name ?? ""
@@ -347,7 +349,66 @@ export function ProductFormClient({
     initialProduct?.private_data.notes ?? ""
   );
 
-  const [saving, setSaving] = React.useState(false);
+  const [savingMode, setSavingMode] = React.useState<
+    "save-and-exit" | "add-another" | null
+  >(null);
+  const saving = savingMode !== null;
+
+  React.useEffect(() => {
+    if (resetNonce === 0) return;
+    const prefersReduced =
+      typeof window !== "undefined" &&
+      window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+    window.scrollTo({
+      top: 0,
+      behavior: prefersReduced ? "auto" : "smooth",
+    });
+    const raf = window.requestAnimationFrame(() => {
+      nameInputRef.current?.focus();
+    });
+    return () => window.cancelAnimationFrame(raf);
+  }, [resetNonce]);
+
+  const resetFormKeepingCategory = () => {
+    setName("");
+    setSlug("");
+    setSlugTouched(false);
+    setDescription("");
+    // Mantém apenas categoryId escolhida
+    setStatus("draft");
+    setFeatured(false);
+    setPosition("0");
+    setPrice("");
+    setMaterial("");
+    setPrintTimeMin("");
+    setWidthMm("");
+    setHeightMm("");
+    setDepthMm("");
+    setWeightG("");
+    setTags([]);
+    setTagInput("");
+    setColors([]);
+    setColorInput("");
+    setImages([]);
+    setVariants([]);
+    setStlUrl("");
+    setSourceUrl("");
+    setLicense("");
+    setCost("");
+    setNotes("");
+    setActivePrefill(null);
+    if (fileInputRef.current) {
+      fileInputRef.current.value = "";
+    }
+    if (
+      typeof window !== "undefined" &&
+      window.location.pathname === "/admin/produtos/novo" &&
+      window.location.search
+    ) {
+      window.history.replaceState(null, "", "/admin/produtos/novo");
+    }
+    setResetNonce((n) => n + 1);
+  };
 
   const sensors = useSensors(
     useSensor(PointerSensor, { activationConstraint: { distance: 6 } }),
@@ -500,17 +561,27 @@ export function ProductFormClient({
     setVariants((prev) => prev.filter((v) => v.uid !== uid));
   };
 
-  const submitWithStatus = async (targetStatus: AdminProductStatus) => {
-    setSaving(true);
+  const submitForm = async (mode: "save-and-exit" | "add-another") => {
+    if (name.trim().length < 2) {
+      nameInputRef.current?.focus();
+      toast({
+        variant: "error",
+        title: "Nome obrigatório",
+        description: "Informe um nome com ao menos 2 caracteres.",
+      });
+      return;
+    }
+
+    setSavingMode(mode);
 
     const payload: SaveProductInput = {
       id: initialProduct?.id,
-      import_job_id: initialPrefill?.importJobId,
+      import_job_id: activePrefill?.importJobId,
       name: name.trim(),
       slug: slug.trim() || slugify(name),
       description: description.trim() || null,
       category_id: categoryId === "none" ? null : categoryId,
-      status: targetStatus,
+      status,
       featured,
       position: parseNullableInt(position) ?? 0,
       price: parseNullableNumber(price),
@@ -559,7 +630,7 @@ export function ProductFormClient({
     };
 
     const res = await saveProductAction(payload);
-    setSaving(false);
+    setSavingMode(null);
 
     if (!res.ok || !res.data) {
       toast({
@@ -570,24 +641,31 @@ export function ProductFormClient({
       return;
     }
 
-    setStatus(targetStatus);
-    setSlug(res.data.slug);
+    if (mode === "add-another" && !isEditing) {
+      toast({
+        variant: "success",
+        title: "Produto salvo! Pronto para o próximo.",
+        description: "Formulário limpo mantendo apenas a categoria escolhida.",
+      });
+      resetFormKeepingCategory();
+      if (!initialPrefill) {
+        router.refresh();
+      }
+      return;
+    }
+
     toast({
       variant: "success",
       title:
-        targetStatus === "active"
+        status === "active"
           ? "Produto salvo e publicado"
-          : targetStatus === "hidden"
+          : status === "hidden"
             ? "Produto salvo como oculto"
             : "Rascunho salvo",
       description: "Cache da vitrine atualizado imediatamente.",
     });
-
-    if (!isEditing) {
-      router.push(`/admin/produtos/${res.data.id}`);
-    } else {
-      router.refresh();
-    }
+    router.push("/admin/produtos");
+    router.refresh();
   };
 
   // Preview computations
@@ -648,56 +726,50 @@ export function ProductFormClient({
                 disabled={saving}
                 onClick={() => setImportDialogOpen(true)}
               >
-                <Link2 className="h-4 w-4 text-accent" />
+                <Link2 className="h-4 w-4 text-accent-ink" />
                 Importar por link
               </Button>
             )}
 
-            <Button
-              type="button"
-              variant="secondary"
-              disabled={saving}
-              onClick={() => submitWithStatus("draft")}
-            >
-              <Save className="h-4 w-4" />
-              Salvar rascunho
-            </Button>
-
-            {status === "active" && (
+            {!isEditing && (
               <Button
                 type="button"
-                variant="ghost"
+                variant="secondary"
+                data-testid="save-and-add-another-btn"
                 disabled={saving}
-                onClick={() => submitWithStatus("hidden")}
+                onClick={() => void submitForm("add-another")}
               >
-                <EyeOff className="h-4 w-4" />
-                Ocultar
+                <Plus className="h-4 w-4" />
+                {savingMode === "add-another"
+                  ? "Salvando..."
+                  : "Salvar e adicionar outro"}
               </Button>
             )}
 
             <Button
               type="button"
               variant="primary"
+              data-testid="save-product-btn"
               disabled={saving}
-              onClick={() => submitWithStatus("active")}
+              onClick={() => void submitForm("save-and-exit")}
             >
-              <Send className="h-4 w-4" />
-              {saving ? "Salvando..." : "Publicar"}
+              <Save className="h-4 w-4" />
+              {savingMode === "save-and-exit" ? "Salvando..." : "Salvar"}
             </Button>
           </div>
         }
       />
 
-      {initialPrefill && (
+      {activePrefill && (
         <div className="space-y-2 rounded-[22px] border border-accent/25 bg-accent-soft/60 px-5 py-4 text-xs text-ink">
           <div className="flex flex-wrap items-center justify-between gap-2">
             <div className="flex items-center gap-2 font-semibold">
-              <Link2 className="h-4 w-4 text-accent" />
+              <Link2 className="h-4 w-4 text-accent-ink" />
               Pré-preenchido por importação externa (salve como rascunho ou publique)
             </div>
-            {initialPrefill.private_data.source_url && (
+            {activePrefill.private_data.source_url && (
               <a
-                href={initialPrefill.private_data.source_url}
+                href={activePrefill.private_data.source_url}
                 target="_blank"
                 rel="noopener noreferrer"
                 className="inline-flex items-center gap-1 font-semibold text-accent-ink hover:underline"
@@ -708,22 +780,22 @@ export function ProductFormClient({
             )}
           </div>
 
-          {initialPrefill.warning && (
+          {activePrefill.warning && (
             <div className="flex items-start gap-2 rounded-xl border border-[#F59E0B]/30 bg-[#FEF3C7]/70 px-3 py-2 text-[#92400E]">
               <AlertTriangle className="mt-0.5 h-3.5 w-3.5 shrink-0" />
-              <span>{initialPrefill.warning}</span>
+              <span>{activePrefill.warning}</span>
             </div>
           )}
 
-          {initialPrefill.duplicateProduct && (
+          {activePrefill.duplicateProduct && (
             <div className="flex flex-wrap items-center justify-between gap-2 rounded-xl border border-[#F59E0B]/35 bg-[#FEF3C7] px-3 py-2 text-[#92400E]">
               <span>
                 <strong>Atenção — possível duplicado:</strong> esta origem já está
                 vinculada ao produto{" "}
-                <strong>{initialPrefill.duplicateProduct.name}</strong>.
+                <strong>{activePrefill.duplicateProduct.name}</strong>.
               </span>
               <Link
-                href={`/admin/produtos/${initialPrefill.duplicateProduct.id}`}
+                href={`/admin/produtos/${activePrefill.duplicateProduct.id}`}
                 className="font-semibold underline"
               >
                 Abrir existente
@@ -748,38 +820,63 @@ export function ProductFormClient({
         </div>
       )}
 
-      <div className="grid gap-8 lg:grid-cols-12">
+      <div key={resetNonce} className="grid gap-8 lg:grid-cols-12">
         {/* Coluna principal de edição */}
         <div className="space-y-6 lg:col-span-8">
           {/* Dados básicos */}
           <section className="rounded-[24px] border border-line bg-surface p-6 shadow-card space-y-5">
-            <div className="flex items-center justify-between gap-2">
+            <div className="flex flex-wrap items-center justify-between gap-3">
               <h2 className="font-display text-lg font-bold text-ink">
                 Informações principais
               </h2>
-              <Badge
-                variant={
-                  status === "active"
-                    ? "active"
-                    : status === "draft"
-                      ? "draft"
-                      : "hidden"
-                }
+              <div
+                role="radiogroup"
+                aria-label="Status do produto"
+                className="inline-flex items-center gap-1 rounded-full border border-line bg-bg p-1"
               >
-                {status === "active"
-                  ? "Ativo"
-                  : status === "draft"
-                    ? "Rascunho"
-                    : "Oculto"}
-              </Badge>
+                {(
+                  [
+                    { value: "draft", label: "Rascunho" },
+                    { value: "active", label: "Publicado" },
+                    ...(isEditing
+                      ? [{ value: "hidden" as const, label: "Oculto" }]
+                      : []),
+                  ] as Array<{ value: AdminProductStatus; label: string }>
+                ).map((opt) => {
+                  const selected = status === opt.value;
+                  return (
+                    <button
+                      key={opt.value}
+                      type="button"
+                      role="radio"
+                      aria-checked={selected}
+                      data-testid={`product-status-${opt.value}`}
+                      onClick={() => setStatus(opt.value)}
+                      className={cn(
+                        "rounded-full px-3 py-1 text-xs font-semibold transition-colors cursor-pointer",
+                        selected
+                          ? "bg-accent text-accent-foreground shadow-xs"
+                          : "text-muted hover:text-ink"
+                      )}
+                    >
+                      {opt.label}
+                    </button>
+                  );
+                })}
+              </div>
             </div>
 
             <div className="grid gap-4 sm:grid-cols-2">
               <div className="space-y-1.5 sm:col-span-2">
-                <label className="text-xs font-semibold uppercase tracking-[0.1em] text-muted">
+                <label
+                  htmlFor="product-name-input"
+                  className="text-xs font-semibold uppercase tracking-[0.1em] text-muted"
+                >
                   Nome do produto *
                 </label>
                 <Input
+                  ref={nameInputRef}
+                  id="product-name-input"
                   value={name}
                   onChange={(e) => handleNameChange(e.target.value)}
                   placeholder="Ex.: Vaso Geométrico Voronoi"
@@ -1086,6 +1183,7 @@ export function ProductFormClient({
                   {uploadingImages ? "Enviando..." : "Enviar imagens"}
                 </span>
                 <input
+                  ref={fileInputRef}
                   type="file"
                   accept="image/webp,image/jpeg,image/png"
                   multiple
