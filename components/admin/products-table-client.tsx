@@ -14,6 +14,7 @@ import {
   EyeOff,
   FolderInput,
   Link2,
+  MoreHorizontal,
   Plus,
   Square,
   Star,
@@ -42,6 +43,13 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 import { SearchInput } from "@/components/ui/input";
 import { PageHeader } from "@/components/ui/page-header";
 import { PillTabs } from "@/components/ui/pill-tabs";
@@ -77,6 +85,108 @@ const STATUS_INFO: Record<
   draft: { label: "Rascunho", variant: "draft" },
   hidden: { label: "Oculto", variant: "hidden" },
 };
+
+function LicenseWarningIcon({ product }: { product: AdminProductListItem }) {
+  if (product.status !== "active" || product.license) return null;
+  return (
+    <span
+      title="Sem licença comercial preenchida"
+      aria-label="Sem licença comercial preenchida"
+      className="group/lic relative inline-flex shrink-0 items-center text-amber-600"
+    >
+      <AlertTriangle className="h-3.5 w-3.5" />
+      <span
+        role="tooltip"
+        className="pointer-events-none absolute bottom-full left-1/2 z-40 mb-1.5 -translate-x-1/2 whitespace-nowrap rounded-lg bg-ink-deep px-2 py-1 text-[10px] font-semibold text-white opacity-0 shadow-md transition-opacity group-hover/lic:opacity-100"
+      >
+        Sem licença
+      </span>
+    </span>
+  );
+}
+
+interface ProductActionsControlProps {
+  product: AdminProductListItem;
+  isBusy: boolean;
+  onToggleStatus: (product: AdminProductListItem) => void;
+  onToggleFeatured: (product: AdminProductListItem) => void;
+  onDuplicate: (product: AdminProductListItem) => void;
+  onRequestDelete: (product: AdminProductListItem) => void;
+}
+
+function ProductActionsControl({
+  product,
+  isBusy,
+  onToggleStatus,
+  onToggleFeatured,
+  onDuplicate,
+  onRequestDelete,
+}: ProductActionsControlProps) {
+  return (
+    <div className="inline-flex shrink-0 items-center justify-end gap-1">
+      <Link
+        href={`/admin/produtos/${product.id}`}
+        title="Editar produto"
+        aria-label={`Editar ${product.name}`}
+        className="inline-flex h-8 w-8 items-center justify-center rounded-full text-muted transition hover:bg-accent-soft hover:text-accent-ink"
+      >
+        <Edit3 className="h-4 w-4" />
+      </Link>
+
+      <DropdownMenu>
+        <DropdownMenuTrigger asChild>
+          <button
+            type="button"
+            disabled={isBusy}
+            title="Mais ações"
+            aria-label={`Mais ações para ${product.name}`}
+            className="inline-flex h-8 w-8 items-center justify-center rounded-full text-muted transition hover:bg-accent-soft hover:text-ink cursor-pointer disabled:opacity-50"
+          >
+            <MoreHorizontal className="h-4 w-4" />
+          </button>
+        </DropdownMenuTrigger>
+        <DropdownMenuContent align="end">
+          <DropdownMenuItem onSelect={() => onToggleStatus(product)}>
+            {product.status === "active" ? (
+              <>
+                <EyeOff className="h-3.5 w-3.5 text-muted" />
+                <span>Ocultar da vitrine</span>
+              </>
+            ) : (
+              <>
+                <Eye className="h-3.5 w-3.5 text-muted" />
+                <span>Publicar na vitrine</span>
+              </>
+            )}
+          </DropdownMenuItem>
+          <DropdownMenuItem onSelect={() => onToggleFeatured(product)}>
+            <Star
+              className={cn(
+                "h-3.5 w-3.5",
+                product.featured ? "fill-amber-400 text-amber-500" : "text-muted"
+              )}
+            />
+            <span>
+              {product.featured ? "Remover destaque" : "Destacar produto"}
+            </span>
+          </DropdownMenuItem>
+          <DropdownMenuItem onSelect={() => onDuplicate(product)}>
+            <Copy className="h-3.5 w-3.5 text-muted" />
+            <span>Duplicar produto</span>
+          </DropdownMenuItem>
+          <DropdownMenuSeparator />
+          <DropdownMenuItem
+            onSelect={() => onRequestDelete(product)}
+            className="text-[#B42318] focus:bg-[#FEE4E2] focus:text-[#B42318]"
+          >
+            <Trash2 className="h-3.5 w-3.5" />
+            <span>Excluir</span>
+          </DropdownMenuItem>
+        </DropdownMenuContent>
+      </DropdownMenu>
+    </div>
+  );
+}
 
 export function ProductsTableClient({
   initialProducts,
@@ -330,7 +440,7 @@ export function ProductsTableClient({
       />
 
       {/* Filtros */}
-      <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
+      <div className="flex flex-col gap-3 xl:flex-row xl:items-center xl:justify-between">
         <div className="overflow-x-auto pb-1">
           <PillTabs<"all" | AdminProductStatus>
             layoutId="admin-products-status-tabs"
@@ -351,7 +461,7 @@ export function ProductsTableClient({
             onChange={(e) => setSearch(e.target.value)}
             placeholder="Buscar produto..."
             resultLabel={`${filteredProducts.length} itens`}
-            className="w-full sm:w-64"
+            className="w-full sm:w-72"
           />
 
           <Select value={categoryFilter} onValueChange={setCategoryFilter}>
@@ -441,212 +551,306 @@ export function ProductsTableClient({
         </div>
       )}
 
-      {/* Tabela */}
-      <Table>
-        <TableHeader>
-          <TableRow>
-            <TableHead className="w-10">
+      {/* Cartões no celular (< 1024px) */}
+      <div className="space-y-3 lg:hidden" data-testid="products-mobile-cards">
+        {filteredProducts.length > 0 ? (
+          <>
+            <div className="flex items-center justify-between px-1">
               <button
                 type="button"
                 onClick={toggleSelectAll}
-                aria-label="Selecionar todos os produtos visíveis"
-                className="inline-flex h-6 w-6 items-center justify-center rounded-md text-muted hover:text-ink cursor-pointer"
+                className="inline-flex items-center gap-2 text-xs font-semibold text-muted hover:text-ink cursor-pointer"
               >
                 {allFilteredSelected ? (
                   <CheckSquare className="h-4 w-4 text-accent" />
                 ) : (
                   <Square className="h-4 w-4" />
                 )}
+                <span>
+                  {allFilteredSelected
+                    ? "Desmarcar todos"
+                    : "Selecionar todos visíveis"}
+                </span>
               </button>
-            </TableHead>
-            <TableHead>Produto</TableHead>
-            <TableHead>Categoria</TableHead>
-            <TableHead>Preço</TableHead>
-            <TableHead>Status</TableHead>
-            <TableHead className="text-center">Destaque</TableHead>
-            <TableHead className="text-right">Ações</TableHead>
-          </TableRow>
-        </TableHeader>
-        <TableBody>
-          {filteredProducts.length > 0 ? (
-            filteredProducts.map((product) => {
+              <span className="text-xs text-muted tabular-nums">
+                {filteredProducts.length}{" "}
+                {filteredProducts.length === 1 ? "item" : "itens"}
+              </span>
+            </div>
+
+            {filteredProducts.map((product) => {
               const isSelected = selectedIds.includes(product.id);
               const badge = STATUS_INFO[product.status];
               const isBusy = busyId === product.id;
 
               return (
-                <TableRow
+                <article
                   key={product.id}
-                  className={cn(isSelected && "bg-accent-soft/45")}
+                  data-testid="product-mobile-card"
+                  className={cn(
+                    "flex items-center gap-3 rounded-[20px] border border-line bg-surface p-3 shadow-card transition-colors",
+                    isSelected && "border-accent/40 bg-accent-soft/45"
+                  )}
                 >
-                  <TableCell>
-                    <button
-                      type="button"
-                      onClick={() => toggleRow(product.id)}
-                      aria-label={`Selecionar ${product.name}`}
-                      className="inline-flex h-6 w-6 items-center justify-center rounded-md text-muted hover:text-ink cursor-pointer"
-                    >
-                      {isSelected ? (
-                        <CheckSquare className="h-4 w-4 text-accent" />
-                      ) : (
-                        <Square className="h-4 w-4" />
-                      )}
-                    </button>
-                  </TableCell>
+                  <button
+                    type="button"
+                    onClick={() => toggleRow(product.id)}
+                    aria-label={`Selecionar ${product.name}`}
+                    className="inline-flex h-6 w-6 shrink-0 items-center justify-center rounded-md text-muted hover:text-ink cursor-pointer"
+                  >
+                    {isSelected ? (
+                      <CheckSquare className="h-4 w-4 text-accent" />
+                    ) : (
+                      <Square className="h-4 w-4" />
+                    )}
+                  </button>
 
-                  <TableCell className="min-w-[240px]">
-                    <div className="flex items-center gap-3">
+                  <Link
+                    href={`/admin/produtos/${product.id}`}
+                    className="relative h-12 w-12 shrink-0 overflow-hidden rounded-xl border border-line bg-bg"
+                  >
+                    {product.cover_image_url ? (
+                      <Image
+                        src={product.cover_image_url}
+                        alt={product.name}
+                        fill
+                        sizes="48px"
+                        className="object-cover"
+                      />
+                    ) : (
+                      <span className="flex h-full w-full items-center justify-center text-muted">
+                        <Box className="h-4 w-4" />
+                      </span>
+                    )}
+                  </Link>
+
+                  <div className="min-w-0 flex-1 space-y-1">
+                    <div className="flex items-center gap-1.5 min-w-0">
                       <Link
                         href={`/admin/produtos/${product.id}`}
-                        className="relative h-12 w-12 shrink-0 overflow-hidden rounded-xl border border-line bg-bg"
+                        className="truncate text-sm font-semibold text-ink hover:text-accent-ink"
                       >
-                        {product.cover_image_url ? (
-                          <Image
-                            src={product.cover_image_url}
-                            alt={product.name}
-                            fill
-                            sizes="48px"
-                            className="object-cover"
-                          />
-                        ) : (
-                          <span className="flex h-full w-full items-center justify-center text-muted">
-                            <Box className="h-4 w-4" />
-                          </span>
-                        )}
+                        {product.name}
                       </Link>
-                      <div className="min-w-0">
+                      <LicenseWarningIcon product={product} />
+                    </div>
+
+                    <div className="flex flex-wrap items-center gap-2">
+                      <span className="text-xs font-semibold text-ink tabular-nums">
+                        {formatCurrencyBRL(product.price)}
+                      </span>
+                      <Badge variant={badge.variant}>{badge.label}</Badge>
+                      {product.featured && (
+                        <Star
+                          aria-label="Produto em destaque"
+                          className="h-3.5 w-3.5 fill-amber-400 text-amber-500"
+                        />
+                      )}
+                    </div>
+                  </div>
+
+                  <ProductActionsControl
+                    product={product}
+                    isBusy={isBusy}
+                    onToggleStatus={handleToggleStatus}
+                    onToggleFeatured={handleToggleFeatured}
+                    onDuplicate={handleDuplicate}
+                    onRequestDelete={setDeleteTarget}
+                  />
+                </article>
+              );
+            })}
+          </>
+        ) : (
+          <div className="rounded-[20px] border border-line bg-surface p-8 text-center text-sm text-muted shadow-card">
+            Nenhum produto encontrado para estes filtros.
+          </div>
+        )}
+      </div>
+
+      {/* Tabela compacta no desktop (>= 1024px), sem rolagem horizontal */}
+      <div className="hidden lg:block" data-testid="products-desktop-table">
+        <Table className="lg:table-fixed">
+          <TableHeader>
+            <TableRow className="hover:bg-transparent">
+              <TableHead className="w-10 px-2.5 xl:px-3.5">
+                <button
+                  type="button"
+                  onClick={toggleSelectAll}
+                  aria-label="Selecionar todos os produtos visíveis"
+                  className="inline-flex h-6 w-6 items-center justify-center rounded-md text-muted hover:text-ink cursor-pointer"
+                >
+                  {allFilteredSelected ? (
+                    <CheckSquare className="h-4 w-4 text-accent" />
+                  ) : (
+                    <Square className="h-4 w-4" />
+                  )}
+                </button>
+              </TableHead>
+              <TableHead className="px-2.5 xl:px-3.5">Produto</TableHead>
+              <TableHead className="w-[112px] xl:w-[152px] px-2.5 xl:px-3.5">
+                Categoria
+              </TableHead>
+              <TableHead className="w-[94px] xl:w-[110px] px-2.5 xl:px-3.5">
+                Preço
+              </TableHead>
+              <TableHead className="w-[86px] xl:w-[96px] px-2.5 xl:px-3.5">
+                Status
+              </TableHead>
+              <TableHead className="w-[76px] px-2 text-center">
+                Destaque
+              </TableHead>
+              <TableHead className="sticky right-0 z-10 w-[88px] border-l border-line/60 bg-[#F8FAFE] px-2.5 text-right xl:px-3.5">
+                Ações
+              </TableHead>
+            </TableRow>
+          </TableHeader>
+          <TableBody>
+            {filteredProducts.length > 0 ? (
+              filteredProducts.map((product) => {
+                const isSelected = selectedIds.includes(product.id);
+                const badge = STATUS_INFO[product.status];
+                const isBusy = busyId === product.id;
+
+                return (
+                  <TableRow
+                    key={product.id}
+                    data-testid="product-table-row"
+                    className={cn(
+                      "group",
+                      isSelected && "bg-accent-soft/45"
+                    )}
+                  >
+                    <TableCell className="px-2.5 py-2 xl:px-3.5">
+                      <button
+                        type="button"
+                        onClick={() => toggleRow(product.id)}
+                        aria-label={`Selecionar ${product.name}`}
+                        className="inline-flex h-6 w-6 items-center justify-center rounded-md text-muted hover:text-ink cursor-pointer"
+                      >
+                        {isSelected ? (
+                          <CheckSquare className="h-4 w-4 text-accent" />
+                        ) : (
+                          <Square className="h-4 w-4" />
+                        )}
+                      </button>
+                    </TableCell>
+
+                    <TableCell className="min-w-0 px-2.5 py-2 xl:px-3.5">
+                      <div className="flex min-w-0 items-center gap-2.5">
                         <Link
                           href={`/admin/produtos/${product.id}`}
-                          className="block truncate font-semibold text-ink hover:text-accent-ink"
+                          className="relative h-10 w-10 shrink-0 overflow-hidden rounded-xl border border-line bg-bg"
                         >
-                          {product.name}
+                          {product.cover_image_url ? (
+                            <Image
+                              src={product.cover_image_url}
+                              alt={product.name}
+                              fill
+                              sizes="40px"
+                              className="object-cover"
+                            />
+                          ) : (
+                            <span className="flex h-full w-full items-center justify-center text-muted">
+                              <Box className="h-4 w-4" />
+                            </span>
+                          )}
                         </Link>
-                        <div className="flex items-center gap-2 text-xs text-muted">
-                          <span className="truncate">/{product.slug}</span>
-                          {product.variants_count > 0 && (
-                            <span className="shrink-0 text-[11px] font-medium text-accent-ink">
-                              · {product.variants_count} opções
-                            </span>
-                          )}
-                          {product.status === "active" && !product.license && (
-                            <span
-                              title="Sem licença comercial preenchida"
-                              className="inline-flex items-center gap-0.5 text-[11px] font-medium text-amber-600"
+                        <div className="min-w-0 flex-1">
+                          <div className="flex min-w-0 items-center gap-1.5">
+                            <Link
+                              href={`/admin/produtos/${product.id}`}
+                              className="truncate text-[13.5px] font-semibold leading-tight text-ink hover:text-accent-ink"
                             >
-                              <AlertTriangle className="h-3 w-3" />
-                              Sem licença
-                            </span>
-                          )}
+                              {product.name}
+                            </Link>
+                            <LicenseWarningIcon product={product} />
+                          </div>
+                          <div className="flex min-w-0 items-center gap-1.5 text-[11px] leading-tight text-muted">
+                            <span className="truncate">/{product.slug}</span>
+                            {product.variants_count > 0 && (
+                              <span className="shrink-0 font-medium text-accent-ink">
+                                · {product.variants_count} op.
+                              </span>
+                            )}
+                          </div>
                         </div>
                       </div>
-                    </div>
-                  </TableCell>
+                    </TableCell>
 
-                  <TableCell className="text-muted">
-                    {product.category_name ?? "—"}
-                  </TableCell>
+                    <TableCell className="px-2.5 py-2 text-xs text-muted xl:px-3.5">
+                      <span
+                        title={product.category_name ?? undefined}
+                        className="block truncate"
+                      >
+                        {product.category_name ?? "—"}
+                      </span>
+                    </TableCell>
 
-                  <TableCell className="font-semibold tabular-nums whitespace-nowrap">
-                    {formatCurrencyBRL(product.price)}
-                  </TableCell>
+                    <TableCell className="px-2.5 py-2 text-xs font-semibold tabular-nums whitespace-nowrap xl:px-3.5 xl:text-sm">
+                      {formatCurrencyBRL(product.price)}
+                    </TableCell>
 
-                  <TableCell>
-                    <Badge variant={badge.variant}>{badge.label}</Badge>
-                  </TableCell>
+                    <TableCell className="px-2.5 py-2 xl:px-3.5">
+                      <Badge variant={badge.variant}>{badge.label}</Badge>
+                    </TableCell>
 
-                  <TableCell className="text-center">
-                    <button
-                      type="button"
-                      disabled={isBusy}
-                      onClick={() => handleToggleFeatured(product)}
-                      aria-label={
-                        product.featured
-                          ? `Remover ${product.name} dos destaques`
-                          : `Destacar ${product.name}`
-                      }
+                    <TableCell className="px-2 py-2 text-center">
+                      <button
+                        type="button"
+                        disabled={isBusy}
+                        onClick={() => handleToggleFeatured(product)}
+                        aria-label={
+                          product.featured
+                            ? `Remover ${product.name} dos destaques`
+                            : `Destacar ${product.name}`
+                        }
+                        className={cn(
+                          "inline-flex h-8 w-8 items-center justify-center rounded-full transition cursor-pointer disabled:opacity-50",
+                          product.featured
+                            ? "bg-amber-50 text-amber-500"
+                            : "text-muted hover:bg-accent-soft hover:text-ink"
+                        )}
+                      >
+                        <Star
+                          className={cn(
+                            "h-4 w-4",
+                            product.featured && "fill-amber-400"
+                          )}
+                        />
+                      </button>
+                    </TableCell>
+
+                    <TableCell
                       className={cn(
-                        "inline-flex h-8 w-8 items-center justify-center rounded-full transition cursor-pointer disabled:opacity-50",
-                        product.featured
-                          ? "bg-amber-50 text-amber-500"
-                          : "text-muted hover:bg-accent-soft hover:text-ink"
+                        "sticky right-0 z-10 border-l border-line/60 px-2.5 py-2 text-right shadow-[-6px_0_12px_-8px_rgba(14,22,48,0.08)] xl:px-3.5",
+                        isSelected
+                          ? "bg-[#F4F7FE]"
+                          : "bg-surface group-hover:bg-[#F7FAFF]"
                       )}
                     >
-                      <Star
-                        className={cn(
-                          "h-4 w-4",
-                          product.featured && "fill-amber-400"
-                        )}
+                      <ProductActionsControl
+                        product={product}
+                        isBusy={isBusy}
+                        onToggleStatus={handleToggleStatus}
+                        onToggleFeatured={handleToggleFeatured}
+                        onDuplicate={handleDuplicate}
+                        onRequestDelete={setDeleteTarget}
                       />
-                    </button>
-                  </TableCell>
-
-                  <TableCell className="text-right">
-                    <div className="inline-flex items-center justify-end gap-1">
-                      <button
-                        type="button"
-                        disabled={isBusy}
-                        onClick={() => handleToggleStatus(product)}
-                        title={
-                          product.status === "active"
-                            ? "Ocultar da vitrine"
-                            : "Publicar na vitrine"
-                        }
-                        aria-label={
-                          product.status === "active" ? "Ocultar" : "Publicar"
-                        }
-                        className="inline-flex h-8 w-8 items-center justify-center rounded-full text-muted transition hover:bg-accent-soft hover:text-ink cursor-pointer disabled:opacity-50"
-                      >
-                        {product.status === "active" ? (
-                          <EyeOff className="h-4 w-4" />
-                        ) : (
-                          <Eye className="h-4 w-4" />
-                        )}
-                      </button>
-
-                      <button
-                        type="button"
-                        disabled={isBusy}
-                        onClick={() => handleDuplicate(product)}
-                        title="Duplicar produto"
-                        aria-label={`Duplicar ${product.name}`}
-                        className="inline-flex h-8 w-8 items-center justify-center rounded-full text-muted transition hover:bg-accent-soft hover:text-ink cursor-pointer disabled:opacity-50"
-                      >
-                        <Copy className="h-4 w-4" />
-                      </button>
-
-                      <Link
-                        href={`/admin/produtos/${product.id}`}
-                        title="Editar produto"
-                        aria-label={`Editar ${product.name}`}
-                        className="inline-flex h-8 w-8 items-center justify-center rounded-full text-muted transition hover:bg-accent-soft hover:text-accent"
-                      >
-                        <Edit3 className="h-4 w-4" />
-                      </Link>
-
-                      <button
-                        type="button"
-                        disabled={isBusy}
-                        onClick={() => setDeleteTarget(product)}
-                        title="Excluir produto"
-                        aria-label={`Excluir ${product.name}`}
-                        className="inline-flex h-8 w-8 items-center justify-center rounded-full text-muted transition hover:bg-[#FEE4E2] hover:text-[#B42318] cursor-pointer disabled:opacity-50"
-                      >
-                        <Trash2 className="h-4 w-4" />
-                      </button>
-                    </div>
-                  </TableCell>
-                </TableRow>
-              );
-            })
-          ) : (
-            <TableRow>
-              <TableCell colSpan={7} className="py-12 text-center text-muted">
-                Nenhum produto encontrado para estes filtros.
-              </TableCell>
-            </TableRow>
-          )}
-        </TableBody>
-      </Table>
+                    </TableCell>
+                  </TableRow>
+                );
+              })
+            ) : (
+              <TableRow>
+                <TableCell colSpan={7} className="py-12 text-center text-muted">
+                  Nenhum produto encontrado para estes filtros.
+                </TableCell>
+              </TableRow>
+            )}
+          </TableBody>
+        </Table>
+      </div>
 
       {/* Diálogo de exclusão */}
       <Dialog
