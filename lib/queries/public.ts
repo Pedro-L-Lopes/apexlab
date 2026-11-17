@@ -24,6 +24,8 @@ export interface PublicSiteSettings {
   instagram: string | null;
   hero_mode: HeroMode;
   home_category_id: string | null;
+  home_category_ids: string[];
+  home_featured_tags: string[];
 }
 
 export interface PublicCategory {
@@ -102,6 +104,8 @@ const DEFAULT_SETTINGS: PublicSiteSettings = {
   instagram: null,
   hero_mode: "text",
   home_category_id: null,
+  home_category_ids: [],
+  home_featured_tags: [],
 };
 
 const LISTING_COLUMNS =
@@ -167,7 +171,7 @@ export async function getPublicSiteSettings(): Promise<PublicSiteSettings> {
   const { data, error } = await supabase
     .from("site_settings")
     .select(
-      "id, name, description, logo_url, banner_url, primary_color, whatsapp, whatsapp_message_template, instagram, hero_mode, home_category_id"
+      "id, name, description, logo_url, banner_url, primary_color, whatsapp, whatsapp_message_template, instagram, hero_mode, home_category_id, home_category_ids, home_featured_tags"
     )
     .eq("id", 1)
     .maybeSingle();
@@ -176,9 +180,37 @@ export async function getPublicSiteSettings(): Promise<PublicSiteSettings> {
     return DEFAULT_SETTINGS;
   }
 
+  const rawCategoryIds =
+    Array.isArray(data.home_category_ids) && data.home_category_ids.length > 0
+      ? data.home_category_ids
+      : data.home_category_id
+        ? [data.home_category_id]
+        : [];
+  const homeCategoryIds = Array.from(
+    new Set(rawCategoryIds.filter((id): id is string => Boolean(id)))
+  ).slice(0, 3);
+
+  const rawFeaturedTags = Array.isArray(data.home_featured_tags)
+    ? data.home_featured_tags
+    : [];
+  const seenTagKeys = new Set<string>();
+  const homeFeaturedTags: string[] = [];
+  for (const rawTag of rawFeaturedTags) {
+    const trimmed = rawTag.trim();
+    if (!trimmed) continue;
+    const key = trimmed.toLowerCase();
+    if (seenTagKeys.has(key)) continue;
+    seenTagKeys.add(key);
+    homeFeaturedTags.push(trimmed);
+    if (homeFeaturedTags.length >= 2) break;
+  }
+
   return {
     ...data,
     hero_mode: normalizeHeroMode(data.hero_mode),
+    home_category_id: homeCategoryIds[0] ?? null,
+    home_category_ids: homeCategoryIds,
+    home_featured_tags: homeFeaturedTags,
   };
 }
 

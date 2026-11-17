@@ -25,6 +25,97 @@ interface HomeContentProps {
   products: PublicProductListing[];
 }
 
+interface ProductShowcaseSectionProps {
+  headingId: string;
+  sectionType: "tag" | "category" | "featured";
+  eyebrow: string;
+  title: string;
+  viewAllHref: string;
+  totalCount: number;
+  products: PublicProductListing[];
+  categoryNameById: Map<string, string>;
+  emptyTitle: string;
+  emptyDescription: string;
+}
+
+function ProductShowcaseSection({
+  headingId,
+  sectionType,
+  eyebrow,
+  title,
+  viewAllHref,
+  totalCount,
+  products,
+  categoryNameById,
+  emptyTitle,
+  emptyDescription,
+}: ProductShowcaseSectionProps) {
+  return (
+    <section
+      aria-labelledby={headingId}
+      data-home-section={sectionType}
+      className="space-y-6"
+    >
+      <div className="flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between">
+        <div>
+          <p className="flex items-center gap-2 text-xs font-bold uppercase tracking-[0.12em] text-accent-ink">
+            <span
+              className="inline-block h-[2px] w-4 rounded-full bg-accent"
+              aria-hidden="true"
+            />
+            <span>{eyebrow}</span>
+          </p>
+          <h2
+            id={headingId}
+            className="mt-1.5 font-display text-[28px] font-extrabold tracking-[-0.03em] text-ink sm:text-[32px]"
+          >
+            {title}
+            <span className="text-accent">.</span>
+          </h2>
+        </div>
+
+        <Link
+          href={viewAllHref}
+          className="inline-flex items-center gap-1.5 text-sm font-semibold text-accent-ink hover:underline"
+        >
+          Ver todos ({totalCount})
+          <ArrowRight className="h-4 w-4" aria-hidden="true" />
+        </Link>
+      </div>
+
+      {products.length > 0 ? (
+        <div className="grid grid-cols-2 gap-4 md:grid-cols-3 lg:grid-cols-4 sm:gap-6">
+          {products.map((product) => {
+            const catName = product.category_id
+              ? categoryNameById.get(product.category_id)
+              : undefined;
+            const subtitleParts = [catName, product.material].filter(Boolean);
+
+            return (
+              <StackedCard
+                key={product.id}
+                href={`/produto/${product.slug}`}
+                title={product.name}
+                subtitle={subtitleParts.join(" · ") || undefined}
+                price={product.starting_price ?? product.price}
+                hasPriceFromPrefix={product.active_variants_count > 1}
+                optionsCount={product.active_variants_count}
+                imageUrl={product.cover_image_url}
+                imageAlt={product.name}
+              />
+            );
+          })}
+        </div>
+      ) : (
+        <div className="rounded-[24px] border border-line bg-surface p-10 text-center shadow-card">
+          <p className="font-display text-lg font-bold text-ink">{emptyTitle}</p>
+          <p className="mt-1 text-sm text-muted">{emptyDescription}</p>
+        </div>
+      )}
+    </section>
+  );
+}
+
 export function HomeContent({
   settings,
   categories,
@@ -55,44 +146,71 @@ export function HomeContent({
     .filter((cat) => cat.show_on_home)
     .slice(0, 6);
 
-  const selectedHomeCategory = settings.home_category_id
-    ? categoryById.get(settings.home_category_id) ?? null
-    : null;
+  const featuredTagSections = settings.home_featured_tags
+    .slice(0, 2)
+    .map((configuredTag) => {
+      const normalized = configuredTag.trim().toLowerCase();
+      let canonicalTag = configuredTag.trim();
+      const matchingProducts = products
+        .filter((p) =>
+          p.tags.some((rawTag) => {
+            const trimmed = rawTag.trim();
+            if (trimmed.toLowerCase() === normalized) {
+              canonicalTag = trimmed;
+              return true;
+            }
+            return false;
+          })
+        )
+        .sort((a, b) => a.position - b.position);
 
-  const homeCategoryProducts = selectedHomeCategory
-    ? products
-        .filter((p) => {
-          if (!p.category_id) return false;
-          if (p.category_id === selectedHomeCategory.id) return true;
-          return categoryById.get(p.category_id)?.parent_id === selectedHomeCategory.id;
-        })
-        .sort((a, b) => a.position - b.position)
-    : [];
+      return {
+        tag: canonicalTag,
+        products: matchingProducts.slice(0, 8),
+        totalCount: matchingProducts.length,
+        viewAllHref: `/catalogo?tag=${encodeURIComponent(canonicalTag)}`,
+      };
+    })
+    .filter((section) => section.totalCount > 0);
+
+  const configuredCategoryIds =
+    settings.home_category_ids.length > 0
+      ? settings.home_category_ids
+      : settings.home_category_id
+        ? [settings.home_category_id]
+        : [];
+
+  const selectedHomeCategories = configuredCategoryIds
+    .map((id) => categoryById.get(id))
+    .filter((cat): cat is PublicCategory => Boolean(cat))
+    .slice(0, 3);
+
+  const homeCategorySections = selectedHomeCategories.map((cat) => {
+    const matchingProducts = products
+      .filter((p) => {
+        if (!p.category_id) return false;
+        if (p.category_id === cat.id) return true;
+        return categoryById.get(p.category_id)?.parent_id === cat.id;
+      })
+      .sort((a, b) => a.position - b.position);
+
+    const parentCat = cat.parent_id ? categoryById.get(cat.parent_id) : null;
+    const viewAllHref = parentCat
+      ? `/catalogo?categoria=${encodeURIComponent(parentCat.slug)}&subcategoria=${encodeURIComponent(cat.slug)}`
+      : `/catalogo?categoria=${encodeURIComponent(cat.slug)}`;
+
+    return {
+      category: cat,
+      products: matchingProducts.slice(0, 8),
+      totalCount: matchingProducts.length,
+      viewAllHref,
+    };
+  });
 
   const featuredProducts = products.filter((p) => p.featured);
-  const showcasedProducts = selectedHomeCategory
-    ? homeCategoryProducts.slice(0, 8)
-    : (featuredProducts.length > 0 ? featuredProducts : products).slice(0, 8);
-
-  let sectionViewAllHref = "/catalogo";
-  if (selectedHomeCategory) {
-    const parentCat = selectedHomeCategory.parent_id
-      ? categoryById.get(selectedHomeCategory.parent_id)
-      : null;
-    sectionViewAllHref = parentCat
-      ? `/catalogo?categoria=${encodeURIComponent(parentCat.slug)}&subcategoria=${encodeURIComponent(selectedHomeCategory.slug)}`
-      : `/catalogo?categoria=${encodeURIComponent(selectedHomeCategory.slug)}`;
-  }
-
-  const sectionEyebrow = selectedHomeCategory
-    ? "Categoria em destaque"
-    : "Destaques da vitrine";
-  const sectionTitle = selectedHomeCategory
-    ? selectedHomeCategory.name
-    : "Peças selecionadas";
-  const sectionTotalCount = selectedHomeCategory
-    ? homeCategoryProducts.length
-    : products.length;
+  const fallbackFeaturedProducts = (
+    featuredProducts.length > 0 ? featuredProducts : products
+  ).slice(0, 8);
 
   const categoryNameById = new Map<string, string>(
     categories.map((cat) => [cat.id, cat.name])
@@ -242,7 +360,24 @@ export function HomeContent({
         </motion.section>
       ) : null}
 
-      {/* 2. Categorias em destaque (show_on_home) */}
+      {/* 2. Tags em destaque (até 2), logo abaixo do Hero e acima das categorias */}
+      {featuredTagSections.map((tagSection, index) => (
+        <ProductShowcaseSection
+          key={tagSection.tag}
+          headingId={`home-tag-heading-${index}`}
+          sectionType="tag"
+          eyebrow="Coleção especial"
+          title={tagSection.tag}
+          viewAllHref={tagSection.viewAllHref}
+          totalCount={tagSection.totalCount}
+          products={tagSection.products}
+          categoryNameById={categoryNameById}
+          emptyTitle="Nenhum produto ativo com esta tag"
+          emptyDescription="Explore o catálogo completo ou aguarde novas adições à vitrine."
+        />
+      ))}
+
+      {/* 3. Categorias em destaque (show_on_home) */}
       {homeCategories.length > 0 ? (
         <section aria-labelledby="home-categories-heading" className="space-y-6">
           <div className="flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between">
@@ -309,73 +444,39 @@ export function HomeContent({
         </section>
       ) : null}
 
-      {/* 3. Produtos da home (categoria configurada ou destaques) */}
-      <section aria-labelledby="home-featured-heading" className="space-y-6">
-        <div className="flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between">
-          <div>
-            <p className="flex items-center gap-2 text-xs font-bold uppercase tracking-[0.12em] text-accent-ink">
-              <span
-                className="inline-block h-[2px] w-4 rounded-full bg-accent"
-                aria-hidden="true"
-              />
-              <span>{sectionEyebrow}</span>
-            </p>
-            <h2
-              id="home-featured-heading"
-              className="mt-1.5 font-display text-[28px] font-extrabold tracking-[-0.03em] text-ink sm:text-[32px]"
-            >
-              {sectionTitle}
-              <span className="text-accent">.</span>
-            </h2>
-          </div>
+      {/* 4. Produtos da home (até 3 categorias configuradas ou destaques) */}
+      {homeCategorySections.length > 0 ? (
+        homeCategorySections.map((catSection, index) => (
+          <ProductShowcaseSection
+            key={catSection.category.id}
+            headingId={`home-category-heading-${index}`}
+            sectionType="category"
+            eyebrow="Categoria em destaque"
+            title={catSection.category.name}
+            viewAllHref={catSection.viewAllHref}
+            totalCount={catSection.totalCount}
+            products={catSection.products}
+            categoryNameById={categoryNameById}
+            emptyTitle="Nenhum produto ativo nesta categoria"
+            emptyDescription="Explore o catálogo completo ou aguarde novas adições à vitrine."
+          />
+        ))
+      ) : (
+        <ProductShowcaseSection
+          headingId="home-featured-heading"
+          sectionType="featured"
+          eyebrow="Destaques da vitrine"
+          title="Peças selecionadas"
+          viewAllHref="/catalogo"
+          totalCount={products.length}
+          products={fallbackFeaturedProducts}
+          categoryNameById={categoryNameById}
+          emptyTitle="Nenhum produto em destaque no momento"
+          emptyDescription="Explore o catálogo completo ou aguarde novas adições à vitrine."
+        />
+      )}
 
-          <Link
-            href={sectionViewAllHref}
-            className="inline-flex items-center gap-1.5 text-sm font-semibold text-accent-ink hover:underline"
-          >
-            Ver todos ({sectionTotalCount})
-            <ArrowRight className="h-4 w-4" aria-hidden="true" />
-          </Link>
-        </div>
-
-        {showcasedProducts.length > 0 ? (
-          <div className="grid grid-cols-2 gap-4 md:grid-cols-3 lg:grid-cols-4 sm:gap-6">
-            {showcasedProducts.map((product) => {
-              const catName = product.category_id
-                ? categoryNameById.get(product.category_id)
-                : undefined;
-              const subtitleParts = [catName, product.material].filter(Boolean);
-
-              return (
-                <StackedCard
-                  key={product.id}
-                  href={`/produto/${product.slug}`}
-                  title={product.name}
-                  subtitle={subtitleParts.join(" · ") || undefined}
-                  price={product.starting_price ?? product.price}
-                  hasPriceFromPrefix={product.active_variants_count > 1}
-                  optionsCount={product.active_variants_count}
-                  imageUrl={product.cover_image_url}
-                  imageAlt={product.name}
-                />
-              );
-            })}
-          </div>
-        ) : (
-          <div className="rounded-[24px] border border-line bg-surface p-10 text-center shadow-card">
-            <p className="font-display text-lg font-bold text-ink">
-              {selectedHomeCategory
-                ? "Nenhum produto ativo nesta categoria"
-                : "Nenhum produto em destaque no momento"}
-            </p>
-            <p className="mt-1 text-sm text-muted">
-              Explore o catálogo completo ou aguarde novas adições à vitrine.
-            </p>
-          </div>
-        )}
-      </section>
-
-      {/* 4. Bloco "Como pedir" em 3 passos */}
+      {/* 5. Bloco "Como pedir" em 3 passos */}
       <section aria-labelledby="home-steps-heading" className="space-y-6">
         <div>
           <p className="flex items-center gap-2 text-xs font-bold uppercase tracking-[0.12em] text-accent-ink">

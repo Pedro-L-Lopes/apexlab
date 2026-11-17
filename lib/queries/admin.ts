@@ -16,7 +16,14 @@ export interface AdminSiteSettings {
   instagram: string | null;
   hero_mode: HeroMode;
   home_category_id: string | null;
+  home_category_ids: string[];
+  home_featured_tags: string[];
   updated_at: string;
+}
+
+export interface AdminTagStat {
+  tag: string;
+  count: number;
 }
 
 function normalizeAdminSiteSettings(
@@ -36,13 +43,40 @@ function normalizeAdminSiteSettings(
       instagram: null,
       hero_mode: "text",
       home_category_id: null,
+      home_category_ids: [],
+      home_featured_tags: [],
       updated_at: "",
     };
+  }
+
+  const rawCategoryIds =
+    Array.isArray(data.home_category_ids) && data.home_category_ids.length > 0
+      ? data.home_category_ids
+      : data.home_category_id
+        ? [data.home_category_id]
+        : [];
+  const homeCategoryIds = Array.from(
+    new Set(rawCategoryIds.filter((id): id is string => Boolean(id)))
+  ).slice(0, 3);
+
+  const seenTags = new Set<string>();
+  const homeFeaturedTags: string[] = [];
+  for (const rawTag of data.home_featured_tags ?? []) {
+    const trimmed = rawTag.trim();
+    if (!trimmed) continue;
+    const key = trimmed.toLowerCase();
+    if (seenTags.has(key)) continue;
+    seenTags.add(key);
+    homeFeaturedTags.push(trimmed);
+    if (homeFeaturedTags.length >= 2) break;
   }
 
   return {
     ...data,
     hero_mode: normalizeHeroMode(data.hero_mode),
+    home_category_id: homeCategoryIds[0] ?? null,
+    home_category_ids: homeCategoryIds,
+    home_featured_tags: homeFeaturedTags,
   };
 }
 
@@ -421,4 +455,31 @@ export async function getAdminSiteSettings(
     .maybeSingle();
 
   return normalizeAdminSiteSettings(data);
+}
+
+export async function getAdminActiveTagStats(
+  supabase: SupabaseClient<Database>
+): Promise<AdminTagStat[]> {
+  const { data } = await supabase
+    .from("products")
+    .select("tags")
+    .eq("status", "active");
+
+  const counts = new Map<string, number>();
+  for (const row of data ?? []) {
+    const seenInProduct = new Set<string>();
+    for (const rawTag of row.tags ?? []) {
+      const tag = rawTag.trim();
+      if (!tag || seenInProduct.has(tag)) continue;
+      seenInProduct.add(tag);
+      counts.set(tag, (counts.get(tag) ?? 0) + 1);
+    }
+  }
+
+  return Array.from(counts.entries())
+    .map(([tag, count]) => ({ tag, count }))
+    .sort((a, b) => {
+      if (b.count !== a.count) return b.count - a.count;
+      return a.tag.localeCompare(b.tag, "pt-BR");
+    });
 }

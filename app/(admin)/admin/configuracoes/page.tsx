@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { requireAdminPage } from "@/lib/auth/admin";
 import {
+  getAdminActiveTagStats,
   getAdminCategories,
   getAdminSiteSettings,
 } from "@/lib/queries/admin";
@@ -12,9 +13,10 @@ export const metadata: Metadata = {
 
 export default async function AdminSettingsPage() {
   const { supabase } = await requireAdminPage();
-  const [settings, categories] = await Promise.all([
+  const [settings, categories, availableTags] = await Promise.all([
     getAdminSiteSettings(supabase),
     getAdminCategories(supabase),
+    getAdminActiveTagStats(supabase),
   ]);
   const activeCategories = categories.filter((category) => category.active);
 
@@ -22,6 +24,7 @@ export default async function AdminSettingsPage() {
     <SettingsFormClient
       initialSettings={settings}
       activeCategories={activeCategories}
+      availableTags={availableTags}
     />
   );
 }

@@ -4,6 +4,8 @@ import * as React from "react";
 import Image from "next/image";
 import { useRouter } from "next/navigation";
 import {
+  ArrowLeft,
+  ArrowRight,
   Box,
   Check,
   Image as ImageIcon,
@@ -11,12 +13,16 @@ import {
   MessageCircle,
   Palette,
   Save,
+  Search,
+  Tag,
   Trash2,
   Upload,
+  X,
 } from "lucide-react";
 import type {
   AdminCategoryItem,
   AdminSiteSettings,
+  AdminTagStat,
 } from "@/lib/queries/admin";
 import type { HeroMode } from "@/lib/queries/public";
 import { updateSiteSettingsAction } from "@/lib/actions/admin-settings";
@@ -25,21 +31,16 @@ import { cn, getAccessibleSidebarColors, getContrastTextColor } from "@/lib/util
 import { Button, buttonVariants } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { PageHeader } from "@/components/ui/page-header";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
 import { useToast } from "@/components/ui/toast";
 
 interface SettingsFormClientProps {
   initialSettings: AdminSiteSettings;
   activeCategories: AdminCategoryItem[];
+  availableTags: AdminTagStat[];
 }
 
-const HOME_CATEGORY_FEATURED = "__featured__";
+const MAX_HOME_CATEGORIES = 3;
+const MAX_HOME_TAGS = 2;
 
 const HERO_MODE_OPTIONS: Array<{
   value: HeroMode;
@@ -77,15 +78,25 @@ const PRESET_COLORS = [
 export function SettingsFormClient({
   initialSettings,
   activeCategories,
+  availableTags,
 }: SettingsFormClientProps) {
   const router = useRouter();
   const { toast } = useToast();
 
-  const initialHomeCategoryId =
-    initialSettings.home_category_id &&
-    activeCategories.some((c) => c.id === initialSettings.home_category_id)
-      ? initialSettings.home_category_id
-      : "";
+  const activeCategoryIdSet = React.useMemo(
+    () => new Set(activeCategories.map((c) => c.id)),
+    [activeCategories]
+  );
+
+  const initialCategoryIds = (
+    initialSettings.home_category_ids.length > 0
+      ? initialSettings.home_category_ids
+      : initialSettings.home_category_id
+        ? [initialSettings.home_category_id]
+        : []
+  )
+    .filter((id) => activeCategoryIdSet.has(id))
+    .slice(0, MAX_HOME_CATEGORIES);
 
   const [name, setName] = React.useState(initialSettings.name);
   const [description, setDescription] = React.useState(
@@ -98,9 +109,12 @@ export function SettingsFormClient({
   const [heroMode, setHeroMode] = React.useState<HeroMode>(
     initialSettings.hero_mode
   );
-  const [homeCategoryId, setHomeCategoryId] = React.useState<string>(
-    initialHomeCategoryId
+  const [homeCategoryIds, setHomeCategoryIds] =
+    React.useState<string[]>(initialCategoryIds);
+  const [homeFeaturedTags, setHomeFeaturedTags] = React.useState<string[]>(
+    initialSettings.home_featured_tags.slice(0, MAX_HOME_TAGS)
   );
+  const [tagFilter, setTagFilter] = React.useState("");
   const [primaryColor, setPrimaryColor] = React.useState(
     initialSettings.primary_color || "#1F4FFF"
   );
@@ -179,6 +193,60 @@ export function SettingsFormClient({
     }
   };
 
+  const categoryById = React.useMemo(
+    () => new Map(activeCategories.map((cat) => [cat.id, cat])),
+    [activeCategories]
+  );
+
+  const filteredTags = React.useMemo(() => {
+    const q = tagFilter.trim().toLowerCase();
+    if (!q) return availableTags.slice(0, 24);
+    return availableTags
+      .filter((item) => item.tag.toLowerCase().includes(q))
+      .slice(0, 24);
+  }, [availableTags, tagFilter]);
+
+  const toggleHomeTag = (tag: string) => {
+    setHomeFeaturedTags((prev) => {
+      const idx = prev.findIndex((t) => t.toLowerCase() === tag.toLowerCase());
+      if (idx !== -1) {
+        return prev.filter((_, i) => i !== idx);
+      }
+      if (prev.length >= MAX_HOME_TAGS) return prev;
+      return [...prev, tag];
+    });
+  };
+
+  const moveHomeTag = (index: number, delta: -1 | 1) => {
+    setHomeFeaturedTags((prev) => {
+      const target = index + delta;
+      if (target < 0 || target >= prev.length) return prev;
+      const next = [...prev];
+      [next[index], next[target]] = [next[target], next[index]];
+      return next;
+    });
+  };
+
+  const toggleHomeCategory = (categoryId: string) => {
+    setHomeCategoryIds((prev) => {
+      if (prev.includes(categoryId)) {
+        return prev.filter((id) => id !== categoryId);
+      }
+      if (prev.length >= MAX_HOME_CATEGORIES) return prev;
+      return [...prev, categoryId];
+    });
+  };
+
+  const moveHomeCategory = (index: number, delta: -1 | 1) => {
+    setHomeCategoryIds((prev) => {
+      const target = index + delta;
+      if (target < 0 || target >= prev.length) return prev;
+      const next = [...prev];
+      [next[index], next[target]] = [next[target], next[index]];
+      return next;
+    });
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setSaving(true);
@@ -192,7 +260,8 @@ export function SettingsFormClient({
       instagram: instagram.trim() || null,
       whatsapp_message_template: template.trim(),
       hero_mode: heroMode,
-      home_category_id: homeCategoryId.trim() || null,
+      home_category_ids: homeCategoryIds,
+      home_featured_tags: homeFeaturedTags,
     });
     setSaving(false);
 
@@ -444,37 +513,224 @@ export function SettingsFormClient({
               )}
             </div>
 
-            <div className="space-y-2">
-              <label
-                htmlFor="home-category-select"
-                className="block text-xs font-semibold uppercase tracking-[0.12em] text-muted"
-              >
-                Categoria exibida na home
-              </label>
-              <Select
-                value={homeCategoryId || HOME_CATEGORY_FEATURED}
-                onValueChange={(value) =>
-                  setHomeCategoryId(
-                    value === HOME_CATEGORY_FEATURED ? "" : value
-                  )
-                }
-              >
-                <SelectTrigger id="home-category-select">
-                  <SelectValue placeholder="Produtos em destaque (padrão)" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value={HOME_CATEGORY_FEATURED}>
-                    Produtos em destaque (padrão)
-                  </SelectItem>
-                  {activeCategories.map((category) => (
-                    <SelectItem key={category.id} value={category.id}>
-                      {category.name}
-                    </SelectItem>
+            {/* Tags destacadas acima das categorias (até 2) */}
+            <div className="space-y-3 border-t border-line pt-5">
+              <div className="flex flex-wrap items-center justify-between gap-2">
+                <div className="flex items-center gap-2">
+                  <Tag className="h-3.5 w-3.5 text-accent-ink" />
+                  <p className="text-xs font-semibold uppercase tracking-[0.12em] text-muted">
+                    Tags destacadas acima das categorias
+                  </p>
+                </div>
+                <span className="rounded-full bg-bg px-2.5 py-0.5 text-[11px] font-bold text-ink tabular-nums">
+                  {homeFeaturedTags.length}/{MAX_HOME_TAGS} selecionadas
+                </span>
+              </div>
+
+              {homeFeaturedTags.length > 0 && (
+                <div
+                  data-testid="selected-home-tags"
+                  className="flex flex-wrap gap-2"
+                >
+                  {homeFeaturedTags.map((tag, index) => (
+                    <span
+                      key={tag}
+                      className="inline-flex items-center gap-1.5 rounded-full border border-accent/30 bg-accent-soft px-3 py-1.5 text-xs font-semibold text-accent-ink"
+                    >
+                      <span className="inline-flex h-4 w-4 items-center justify-center rounded-full bg-accent text-[10px] font-bold text-accent-foreground tabular-nums">
+                        {index + 1}
+                      </span>
+                      <span>{tag}</span>
+                      {homeFeaturedTags.length > 1 && (
+                        <button
+                          type="button"
+                          onClick={() => moveHomeTag(index, index === 0 ? 1 : -1)}
+                          aria-label={`Reordenar tag ${tag}`}
+                          className="rounded-full p-0.5 hover:bg-white/60 cursor-pointer"
+                        >
+                          {index === 0 ? (
+                            <ArrowRight className="h-3 w-3" />
+                          ) : (
+                            <ArrowLeft className="h-3 w-3" />
+                          )}
+                        </button>
+                      )}
+                      <button
+                        type="button"
+                        onClick={() => toggleHomeTag(tag)}
+                        aria-label={`Remover tag ${tag}`}
+                        className="rounded-full p-0.5 hover:bg-white/60 cursor-pointer"
+                      >
+                        <X className="h-3 w-3" />
+                      </button>
+                    </span>
                   ))}
-                </SelectContent>
-              </Select>
+                </div>
+              )}
+
+              <div className="relative">
+                <Search className="pointer-events-none absolute left-3.5 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-muted" />
+                <Input
+                  value={tagFilter}
+                  onChange={(e) => setTagFilter(e.target.value)}
+                  placeholder="Buscar tag ativa (ex.: Natal)..."
+                  aria-label="Buscar tag destacada para a home"
+                  className="h-9 pl-9 text-xs"
+                />
+              </div>
+
+              {filteredTags.length > 0 ? (
+                <div className="flex flex-wrap gap-2">
+                  {filteredTags.map(({ tag, count }) => {
+                    const selected = homeFeaturedTags.some(
+                      (t) => t.toLowerCase() === tag.toLowerCase()
+                    );
+                    const disabled =
+                      !selected && homeFeaturedTags.length >= MAX_HOME_TAGS;
+                    return (
+                      <button
+                        key={tag}
+                        type="button"
+                        data-testid={`home-tag-option-${tag}`}
+                        aria-pressed={selected}
+                        disabled={disabled}
+                        onClick={() => toggleHomeTag(tag)}
+                        className={cn(
+                          "inline-flex items-center gap-1.5 rounded-full border px-3 py-1.5 text-xs font-medium transition-all",
+                          selected
+                            ? "border-accent bg-accent text-accent-foreground shadow-xs cursor-pointer"
+                            : disabled
+                              ? "border-line/70 bg-bg/50 text-muted/50 cursor-not-allowed"
+                              : "border-line bg-bg/70 text-ink hover:border-accent/40 hover:bg-accent-soft cursor-pointer"
+                        )}
+                      >
+                        <span>{tag}</span>
+                        <span
+                          className={cn(
+                            "rounded-full px-1.5 py-0.2 text-[10px] font-bold tabular-nums",
+                            selected ? "bg-black/15" : "bg-surface text-muted"
+                          )}
+                        >
+                          {count}
+                        </span>
+                      </button>
+                    );
+                  })}
+                </div>
+              ) : (
+                <p className="text-xs text-muted">
+                  Nenhuma tag ativa encontrada para &quot;{tagFilter}&quot;.
+                </p>
+              )}
+
               <p className="text-xs text-muted">
-                Escolha uma categoria para destacá-la na seção principal da home ou mantenha os produtos em destaque.
+                Exibem blocos dedicados logo abaixo do hero e acima das categorias (até 8 produtos por tag). Deixe vazio para ocultar.
+              </p>
+            </div>
+
+            {/* Categorias exibidas na home (até 3) */}
+            <div className="space-y-3 border-t border-line pt-5">
+              <div className="flex flex-wrap items-center justify-between gap-2">
+                <p className="text-xs font-semibold uppercase tracking-[0.12em] text-muted">
+                  Categorias exibidas na home
+                </p>
+                <span className="rounded-full bg-bg px-2.5 py-0.5 text-[11px] font-bold text-ink tabular-nums">
+                  {homeCategoryIds.length}/{MAX_HOME_CATEGORIES} selecionadas
+                </span>
+              </div>
+
+              {homeCategoryIds.length > 0 && (
+                <div
+                  data-testid="selected-home-categories"
+                  className="flex flex-wrap gap-2"
+                >
+                  {homeCategoryIds.map((catId, index) => {
+                    const cat = categoryById.get(catId);
+                    if (!cat) return null;
+                    return (
+                      <span
+                        key={cat.id}
+                        className="inline-flex items-center gap-1.5 rounded-full border border-accent/30 bg-accent-soft px-3 py-1.5 text-xs font-semibold text-accent-ink"
+                      >
+                        <span className="inline-flex h-4 w-4 items-center justify-center rounded-full bg-accent text-[10px] font-bold text-accent-foreground tabular-nums">
+                          {index + 1}
+                        </span>
+                        <span>{cat.name}</span>
+                        {index > 0 && (
+                          <button
+                            type="button"
+                            onClick={() => moveHomeCategory(index, -1)}
+                            aria-label={`Mover ${cat.name} para antes`}
+                            className="rounded-full p-0.5 hover:bg-white/60 cursor-pointer"
+                          >
+                            <ArrowLeft className="h-3 w-3" />
+                          </button>
+                        )}
+                        {index < homeCategoryIds.length - 1 && (
+                          <button
+                            type="button"
+                            onClick={() => moveHomeCategory(index, 1)}
+                            aria-label={`Mover ${cat.name} para depois`}
+                            className="rounded-full p-0.5 hover:bg-white/60 cursor-pointer"
+                          >
+                            <ArrowRight className="h-3 w-3" />
+                          </button>
+                        )}
+                        <button
+                          type="button"
+                          onClick={() => toggleHomeCategory(cat.id)}
+                          aria-label={`Remover categoria ${cat.name}`}
+                          className="rounded-full p-0.5 hover:bg-white/60 cursor-pointer"
+                        >
+                          <X className="h-3 w-3" />
+                        </button>
+                      </span>
+                    );
+                  })}
+                </div>
+              )}
+
+              <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
+                {activeCategories.map((category) => {
+                  const orderIndex = homeCategoryIds.indexOf(category.id);
+                  const selected = orderIndex !== -1;
+                  const disabled =
+                    !selected && homeCategoryIds.length >= MAX_HOME_CATEGORIES;
+                  return (
+                    <button
+                      key={category.id}
+                      type="button"
+                      data-testid={`home-category-option-${category.slug}`}
+                      aria-pressed={selected}
+                      disabled={disabled}
+                      onClick={() => toggleHomeCategory(category.id)}
+                      className={cn(
+                        "flex items-center justify-between gap-2 rounded-[16px] border px-3.5 py-2.5 text-left text-xs font-semibold transition-all",
+                        selected
+                          ? "border-accent bg-accent/10 text-ink ring-1 ring-accent/30 cursor-pointer"
+                          : disabled
+                            ? "border-line/70 bg-bg/40 text-muted/50 cursor-not-allowed"
+                            : "border-line bg-bg/60 text-ink hover:border-accent/40 hover:bg-bg cursor-pointer"
+                      )}
+                    >
+                      <span className="truncate">{category.name}</span>
+                      <span
+                        className={cn(
+                          "inline-flex h-5 min-w-5 shrink-0 items-center justify-center rounded-full px-1.5 text-[10px] font-bold tabular-nums",
+                          selected
+                            ? "bg-accent text-accent-foreground"
+                            : "bg-surface text-muted border border-line"
+                        )}
+                      >
+                        {selected ? orderIndex + 1 : category.product_count}
+                      </span>
+                    </button>
+                  );
+                })}
+              </div>
+
+              <p className="text-xs text-muted">
+                Escolha até 3 categorias para exibir seções na home (até 8 produtos cada). Sem seleção, exibe &quot;Peças selecionadas&quot;.
               </p>
             </div>
           </section>

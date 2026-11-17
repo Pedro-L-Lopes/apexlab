@@ -1,4 +1,4 @@
-﻿export type Json =
+export type Json =
   | string
   | number
   | boolean
@@ -358,6 +358,8 @@ export type Database = {
           description: string
           hero_mode: string
           home_category_id: string | null
+          home_category_ids: string[]
+          home_featured_tags: string[]
           id: number
           instagram: string | null
           logo_url: string | null
@@ -372,6 +374,8 @@ export type Database = {
           description?: string
           hero_mode?: string
           home_category_id?: string | null
+          home_category_ids?: string[]
+          home_featured_tags?: string[]
           id?: number
           instagram?: string | null
           logo_url?: string | null
@@ -386,6 +390,8 @@ export type Database = {
           description?: string
           hero_mode?: string
           home_category_id?: string | null
+          home_category_ids?: string[]
+          home_featured_tags?: string[]
           id?: number
           instagram?: string | null
           logo_url?: string | null

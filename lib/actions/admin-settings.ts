@@ -23,7 +23,14 @@ const settingsSchema = z.object({
     .min(5, "Informe um modelo de mensagem válido.")
     .max(500),
   hero_mode: z.enum(["text", "image", "none"]).default("text"),
-  home_category_id: z.string().uuid("Categoria inválida.").nullable(),
+  home_category_ids: z
+    .array(z.string().uuid("Categoria inválida."))
+    .max(3, "Escolha no máximo 3 categorias para a home.")
+    .default([]),
+  home_featured_tags: z
+    .array(z.string().trim().min(1, "Informe uma tag válida.").max(60))
+    .max(2, "Destaque no máximo 2 tags na home.")
+    .default([]),
 });
 
 export type UpdateSiteSettingsInput = z.infer<typeof settingsSchema>;
@@ -44,6 +51,22 @@ export async function updateSiteSettingsAction(
 
   const input = parsed.data;
   const whatsappDigits = sanitizePhoneDigits(input.whatsapp);
+  const homeCategoryIds = Array.from(new Set(input.home_category_ids)).slice(
+    0,
+    3
+  );
+
+  const seenTags = new Set<string>();
+  const homeFeaturedTags: string[] = [];
+  for (const rawTag of input.home_featured_tags) {
+    const trimmed = rawTag.trim();
+    if (!trimmed) continue;
+    const key = trimmed.toLowerCase();
+    if (seenTags.has(key)) continue;
+    seenTags.add(key);
+    homeFeaturedTags.push(trimmed);
+    if (homeFeaturedTags.length >= 2) break;
+  }
 
   const { error } = await auth.supabase
     .from("site_settings")
@@ -57,7 +80,9 @@ export async function updateSiteSettingsAction(
       instagram: input.instagram || null,
       whatsapp_message_template: input.whatsapp_message_template,
       hero_mode: input.hero_mode,
-      home_category_id: input.home_category_id || null,
+      home_category_id: homeCategoryIds[0] ?? null,
+      home_category_ids: homeCategoryIds,
+      home_featured_tags: homeFeaturedTags,
     })
     .eq("id", 1);
 
