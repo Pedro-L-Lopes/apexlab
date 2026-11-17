@@ -18,6 +18,9 @@
   --accent-strong: color-mix(in srgb, var(--accent) 82%, black);
   --accent-ink: #1941D1;
   --accent-soft: color-mix(in srgb, var(--accent) 10%, white);
+  --sidebar-bg: #1F4FFF;
+  --sidebar-bg-deep: #1535B5;
+  --sidebar-fg: #FFFFFF;
   --radius-input: 14px;
   --radius-card: 24px;
   --radius-block: 28px;
@@ -37,6 +40,9 @@
   --color-accent-ink: var(--accent-ink);
   --color-accent-soft: var(--accent-soft);
   --color-accent-foreground: var(--accent-foreground);
+  --color-sidebar-bg: var(--sidebar-bg);
+  --color-sidebar-bg-deep: var(--sidebar-bg-deep);
+  --color-sidebar-fg: var(--sidebar-fg);
 
   --font-sans: var(--font-inter);
   --font-display: var(--font-jakarta);

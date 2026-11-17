@@ -21,7 +21,7 @@ import type {
 import type { HeroMode } from "@/lib/queries/public";
 import { updateSiteSettingsAction } from "@/lib/actions/admin-settings";
 import { buildWhatsAppProductUrl } from "@/lib/whatsapp";
-import { cn, getContrastTextColor } from "@/lib/utils";
+import { cn, getAccessibleSidebarColors, getContrastTextColor } from "@/lib/utils";
 import { Button, buttonVariants } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { PageHeader } from "@/components/ui/page-header";
@@ -121,6 +121,7 @@ export function SettingsFormClient({
     ? primaryColor
     : "#1F4FFF";
   const previewContrast = getContrastTextColor(safeColor);
+  const sidebarPreview = getAccessibleSidebarColors(safeColor);
 
   const previewWhatsappUrl = buildWhatsAppProductUrl({
     whatsapp: whatsapp || "5511999998888",
@@ -614,15 +615,18 @@ export function SettingsFormClient({
             <div className="rounded-[20px] border border-line bg-bg p-4 space-y-3">
               <div
                 style={{
-                  backgroundColor: safeColor,
-                  color: previewContrast,
+                  backgroundImage: `linear-gradient(135deg, ${sidebarPreview.bg} 0%, ${sidebarPreview.bgDeep} 100%)`,
+                  color: "#FFFFFF",
                 }}
-                className="rounded-2xl p-4 shadow-sm"
+                className="rounded-2xl p-4 shadow-sm text-white"
               >
-                <p className="text-[11px] font-bold uppercase tracking-[0.14em] opacity-80">
-                  Destaque AA automático
+                <p
+                  style={{ color: "rgba(255, 255, 255, 0.72)" }}
+                  className="text-[11px] font-bold uppercase tracking-[0.14em]"
+                >
+                  Sidebar AA ({sidebarPreview.contrastRatio.toFixed(1)}:1)
                 </p>
-                <p className="mt-1 font-display text-lg font-bold truncate">
+                <p className="mt-1 font-display text-lg font-bold truncate text-white">
                   {name.trim() || "Catálogo 3D"}
                 </p>
               </div>

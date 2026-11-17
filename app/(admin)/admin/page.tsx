@@ -63,10 +63,15 @@ export default async function AdminDashboardPage() {
 
       {/* Bento Grid */}
       <section aria-label="Resumo do catálogo" className="grid gap-5 md:grid-cols-2 xl:grid-cols-4">
-        {/* Card sólido em --accent: Produtos ativos */}
+        {/* Card sólido derivado de --accent com contraste AA para texto branco */}
         <Link
           href="/admin/produtos?status=active"
-          className="group flex flex-col justify-between rounded-[28px] bg-gradient-to-br from-accent to-accent-strong p-6 text-accent-foreground shadow-card transition hover:-translate-y-0.5 md:col-span-2 xl:col-span-1"
+          style={{
+            backgroundImage:
+              "linear-gradient(135deg, var(--sidebar-bg) 0%, var(--sidebar-bg-deep) 100%)",
+            color: "#FFFFFF",
+          }}
+          className="group flex flex-col justify-between rounded-[28px] p-6 text-white shadow-card transition hover:-translate-y-0.5 md:col-span-2 xl:col-span-1"
         >
           <div className="flex items-center justify-between gap-2">
             <span className="text-sm font-semibold opacity-90">

@@ -17,7 +17,7 @@ export const metadata: Metadata = {
 function AdminLayoutSkeleton() {
   return (
     <div className="min-h-screen bg-bg flex">
-      <div className="hidden lg:block w-64 shrink-0 bg-accent/90 p-5">
+      <div className="hidden lg:block w-64 shrink-0 bg-sidebar-bg p-5">
         <Skeleton className="h-10 w-44 bg-white/20" />
         <div className="mt-8 space-y-3">
           <Skeleton className="h-9 w-full bg-white/15" />
