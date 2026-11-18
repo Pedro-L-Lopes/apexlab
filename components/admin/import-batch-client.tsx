@@ -47,6 +47,7 @@ import { useToast } from "@/components/ui/toast";
 interface ImportBatchClientProps {
   initialJobs: AdminImportJobItem[];
   categories: AdminCategoryItem[];
+  embedded?: boolean;
 }
 
 interface ParsedBatchLine {
@@ -137,6 +138,7 @@ function StatusBadge({
 export function ImportBatchClient({
   initialJobs,
   categories,
+  embedded = false,
 }: ImportBatchClientProps) {
   const router = useRouter();
   const { toast } = useToast();
@@ -671,25 +673,27 @@ export function ImportBatchClient({
 
   return (
     <div className="space-y-6">
-      <PageHeader
-        eyebrow="Produtividade"
-        title={
-          <>
-            Importar em lote<span className="text-accent">.</span>
-          </>
-        }
-        subtitle={`${jobs.length} ${
-          jobs.length === 1 ? "item registrado" : "itens registrados"
-        } na fila · extração segura em português`}
-        actions={
-          <Link
-            href="/admin/produtos?status=draft"
-            className={buttonVariants({ variant: "secondary", size: "md" })}
-          >
-            Ver rascunhos
-          </Link>
-        }
-      />
+      {!embedded && (
+        <PageHeader
+          eyebrow="Produtividade"
+          title={
+            <>
+              Importar em lote<span className="text-accent">.</span>
+            </>
+          }
+          subtitle={`${jobs.length} ${
+            jobs.length === 1 ? "item registrado" : "itens registrados"
+          } na fila · extração segura em português`}
+          actions={
+            <Link
+              href="/admin/produtos?status=draft"
+              className={buttonVariants({ variant: "secondary", size: "md" })}
+            >
+              Ver rascunhos
+            </Link>
+          }
+        />
+      )}
 
       {/* Lembrete de licença comercial */}
       <div className="flex items-start gap-3 rounded-[22px] border border-[#F59E0B]/35 bg-[#FEF3C7]/60 px-5 py-3.5 text-xs text-[#92400E]">

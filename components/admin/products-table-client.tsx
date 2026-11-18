@@ -75,6 +75,7 @@ interface ProductsTableClientProps {
   initialProducts: AdminProductListItem[];
   categories: AdminCategoryItem[];
   initialStatusFilter?: "all" | AdminProductStatus;
+  initialCreatedIds?: string[];
 }
 
 const STATUS_INFO: Record<
@@ -192,6 +193,7 @@ export function ProductsTableClient({
   initialProducts,
   categories,
   initialStatusFilter = "all",
+  initialCreatedIds = [],
 }: ProductsTableClientProps) {
   const router = useRouter();
   const { toast } = useToast();
@@ -206,6 +208,8 @@ export function ProductsTableClient({
     "all" | AdminProductStatus
   >(initialStatusFilter);
   const [categoryFilter, setCategoryFilter] = React.useState<string>("all");
+  const [createdIdsFilter, setCreatedIdsFilter] =
+    React.useState<string[]>(initialCreatedIds);
   const [search, setSearch] = React.useState("");
   const [selectedIds, setSelectedIds] = React.useState<string[]>([]);
   const [batchCategory, setBatchCategory] = React.useState<string>("");
@@ -229,7 +233,10 @@ export function ProductsTableClient({
 
   const filteredProducts = React.useMemo(() => {
     const q = search.trim().toLowerCase();
+    const createdSet =
+      createdIdsFilter.length > 0 ? new Set(createdIdsFilter) : null;
     return products.filter((p) => {
+      if (createdSet && !createdSet.has(p.id)) return false;
       if (statusFilter !== "all" && p.status !== statusFilter) return false;
       if (categoryFilter === "none" && p.category_id !== null) return false;
       if (
@@ -245,7 +252,7 @@ export function ProductsTableClient({
       }
       return true;
     });
-  }, [categoryFilter, products, search, statusFilter]);
+  }, [categoryFilter, createdIdsFilter, products, search, statusFilter]);
 
   const allFilteredSelected =
     filteredProducts.length > 0 &&
@@ -483,6 +490,32 @@ export function ProductsTableClient({
           </Select>
         </div>
       </div>
+
+      {/* Barra de filtro por recém-criados */}
+      {createdIdsFilter.length > 0 && (
+        <div
+          data-testid="created-filter-banner"
+          className="flex flex-wrap items-center justify-between gap-3 rounded-[20px] border border-accent/25 bg-accent-soft px-4 py-3 text-sm"
+        >
+          <span className="font-semibold text-ink">
+            Exibindo apenas {filteredProducts.length}{" "}
+            {filteredProducts.length === 1
+              ? "produto recém-criado"
+              : "produtos recém-criados"}
+          </span>
+          <Button
+            type="button"
+            size="sm"
+            variant="secondary"
+            onClick={() => {
+              setCreatedIdsFilter([]);
+              router.replace("/admin/produtos");
+            }}
+          >
+            Mostrar todos os produtos
+          </Button>
+        </div>
+      )}
 
       {/* Barra de ações em lote */}
       {selectedIds.length > 0 && (
